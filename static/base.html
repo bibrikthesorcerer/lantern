@@ -1,0 +1,34 @@
+{{ define "base.html" }}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>
+        {{ block "title" . }}
+        Lantern
+        {{ end }}
+    </title>
+    <link rel="stylesheet" href="/static/css/colorscheme.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/player.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@100..900&display=swap" rel="stylesheet">
+</head>
+
+<body class="min-h-[120vh]">
+    {{template "nav" . }}
+    <div class="p-8">
+        {{block "content" .}}
+        {{ end }}
+    </div>
+    {{template "player" .}}
+    <script src="/static/js/utils.js"></script>
+    {{block "scripts" .}}
+    {{end}}
+</body>
+
+</html>
+{{ end }}

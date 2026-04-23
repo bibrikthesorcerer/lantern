@@ -1,0 +1,74 @@
+body {
+    background-color: var(--surface);
+    font-family: "Noto Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+}
+
+* {
+    color: wheat;
+}
+
+.trackCard {
+    margin-bottom: 5%;
+    padding: 2%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: fit-content;
+    cursor: pointer;
+}
+
+.trackTitle {
+    display: block;
+    font-weight: bold;
+}
+
+.albumContainer {
+    padding: calc(8*var(--spacing));
+    border: 1px solid var(--surface2);
+    border-radius: 12px;
+    margin-bottom: calc(8*var(--spacing));
+}
+
+.albumHeader {
+    display: flex;
+    flex-direction: row;
+    gap: 2%;
+    align-items: end;
+    padding-bottom: calc(6*var(--spacing));
+    border-bottom: 1px solid var(--surface2);
+}
+
+.tracksContainer {
+    margin-top: calc(4*var(--spacing));
+    margin-bottom: calc(6*var(--spacing));
+    display: flex;
+    flex-direction: column;
+}
+
+.albumTrackEntry {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1%;
+    cursor: pointer;
+    flex-shrink: 0;
+    flex-grow: 1;
+}
+
+.albumTrackEntryBG:hover {
+    background-color: color-mix(in srgb, var(--surface2) 50%, transparent);
+}
+
+.navOpt:hover{
+    color: var(--amber);
+    transition-duration: 300ms;
+    transition: color;
+}
+
+#searchBar {
+    background-color: var(--surface2);
+    padding: 0px 0.25rem;
+}

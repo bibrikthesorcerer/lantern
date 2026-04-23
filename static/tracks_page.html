@@ -1,0 +1,10 @@
+{{ template "base" .}}
+{{block "title" .}}
+Tracks - Lantern
+{{end}}
+{{block "content" .}}
+    <ul id="tracklist"></ul>
+{{end}}
+{{block "scripts" .}}
+    <script type="module" src="/static/js/loadTracks.js"></script>
+{{end}}

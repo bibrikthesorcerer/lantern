@@ -1,0 +1,148 @@
+    .mono { font-family: 'DM Mono', monospace; }
+
+    /* ── Progress bar ───────────────────────────────────── */
+    .seek-wrap { position: relative; width: 100%; height: 8px;}
+    .seek-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .seek-fill {
+      height: 100%;
+      background: var(--amber);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.1s linear;
+      pointer-events: none;
+    }
+    .seek-input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 80%;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+      padding: 0;
+    }
+    .seek-wrap:hover .seek-track { transform: scaleY(1.5); transition: transform 0.15s; }
+    .seek-thumb {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      width: 18px;
+      height: 18px;
+      background: var(--amber);
+      border-radius: 50%;
+      pointer-events: none;
+      transition: transform 0.15s;
+    }
+    .seek-wrap:hover .seek-thumb { transform: translate(-50%, -50%) scale(1); }
+
+    /* ── Volume range ───────────────────────────────────── */
+    input[type="range"].vol {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      width: 100%;
+    }
+    input[type="range"].vol::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--amber);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    input[type="range"].vol::-webkit-slider-thumb:hover { transform: scale(1.3); }
+    input[type="range"].vol::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--amber);
+      border: none;
+      cursor: pointer;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .ctrl-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: none;
+      cursor: pointer;
+      padding: 0;
+      color: var(--muted);
+      transition: color 0.2s, transform 0.15s;
+    }
+    .ctrl-btn:hover { color: var(--text); }
+    .ctrl-btn:active { transform: scale(0.92); }
+    .ctrl-btn.active { color: var(--amber); }
+
+    .play-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    }
+    .play-btn:hover {
+      background: var(--surface3);
+      border-color: var(--amber);
+    }
+    .play-btn:active { transform: scale(0.93); }
+
+    /* ── Card ────────────────────────────────────────────── */
+    .player-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    /* .player-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 200px 120px at 80% -20%, rgba(245,158,11,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    } */
+    /* ── Track art placeholder ─────────────────────────── */
+    .track-art {
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .track-art svg { color: var(--muted); }
+
+    /* ── Status dot ───────────────────────────────────────
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+      animation: pulse-dot 1.2s ease-in-out infinite;
+    } */
