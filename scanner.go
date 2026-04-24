@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -69,22 +70,19 @@ func scanLibrary(dir string) (map[uint16]Track, map[string]Album, error) {
 func parseTrack(path string, entry os.DirEntry) (Track, error) {
 	tr, err := entry.Info()
 	if err != nil {
-		log.Errorf("parseTrack: %s", err)
-		return Track{}, err
+		return Track{}, fmt.Errorf("get file info: %w", err)
 	}
 
 	// read metadata
 	f, err := os.Open(path)
 	if err != nil {
-		log.Errorf("parseTrack: %s", err)
-		return Track{}, err
+		return Track{}, fmt.Errorf("open for read: %w", err)
 	}
 	defer f.Close()
 
 	m, err := tag.ReadFrom(f)
 	if err != nil {
-		log.Errorf("parseTrack: %s", err)
-		return Track{}, err
+		return Track{}, fmt.Errorf("tag reading: %w", err)
 	}
 
 	trackNum, _ := m.Track()

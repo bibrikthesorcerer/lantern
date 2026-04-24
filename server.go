@@ -1,17 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/charmbracelet/log"
+	clog "github.com/charmbracelet/log"
 	"github.com/dhowden/tag"
 )
 
 type MusicServer struct {
 	library map[uint16]Track
 	albums  map[string]Album
-	dir     string
+	conf    *Config
 }
 
 type Track struct {
@@ -36,17 +37,17 @@ type Album struct {
 	Tracks      []Track `json:"tracks"`
 }
 
-func NewServer(dir string) (*MusicServer, error) {
-	library, albums, err := scanLibrary(dir)
+func NewServer(c *Config) (*MusicServer, error) {
+	library, albums, err := scanLibrary(c.Dir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("library scan: %w", err)
 	}
-	return &MusicServer{library: library, albums: albums, dir: dir}, nil
+	return &MusicServer{library: library, albums: albums, conf: c}, nil
 }
 
-func (s *MusicServer) ListenAndServe() error {
-	log.Infof("Launching server on :8080")
-	err := http.ListenAndServe(":8080", nil)
-	log.Fatal("Server shutdown: %s", err)
-	return err
+func (s *MusicServer) ListenAndServe() {
+	addrString := fmt.Sprintf(":%d", s.conf.Port)
+	clog.Infof("Launching server on %s", addrString)
+	err := http.ListenAndServe(addrString, nil)
+	clog.Fatalf("Server shutdown: %s", err)
 }
