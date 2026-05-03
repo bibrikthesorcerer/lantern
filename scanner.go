@@ -5,14 +5,15 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/log"
 	clog "github.com/charmbracelet/log"
-	"github.com/dhowden/tag"
+	"go.senan.xyz/taglib"
 )
 
-var audioTypes = []string{"mp3", "wav", "ogg"} //TODO: flac ParseTrack error
+var audioTypes = []string{"mp3", "wav", "ogg", "flac"}
 var trackIndex uint16 = 0
 var albumIndex uint16 = 0
 
@@ -73,31 +74,39 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 		return Track{}, fmt.Errorf("get file info: %w", err)
 	}
 
-	// read metadata
-	f, err := os.Open(path)
+	image, err := taglib.ReadImage(path)
 	if err != nil {
-		return Track{}, fmt.Errorf("open for read: %w", err)
+		return Track{}, fmt.Errorf("image read: %w", err)
 	}
-	defer f.Close()
 
-	m, err := tag.ReadFrom(f)
+	props, err := taglib.ReadProperties(path)
+	if err != nil {
+		return Track{}, fmt.Errorf("props read: %w", err)
+	}
+	cover := AlbumCover{Data: image}
+	cover.ImageDesc = props.Images[0]
+
+	m, err := taglib.ReadTags(path)
 	if err != nil {
 		return Track{}, fmt.Errorf("tag reading: %w", err)
 	}
 
-	trackNum, _ := m.Track()
+	rawTrack := m[taglib.TrackNumber][0]
+	trackStr := strings.Split(rawTrack, "/")[0]
+	trackNum, _ := strconv.ParseInt(strings.TrimSpace(trackStr), 10, 16)
+	year, _ := strconv.ParseUint(strings.TrimSpace(m[taglib.Date][0]), 10, 16) //NOTE: wrap every metadata extraction in Trim?
 
 	res := Track{
 		ID:       trackIndex,
 		Path:     path,
 		Filename: tr.Name(),
 		ModTime:  tr.ModTime(),
-		Title:    m.Title(),
-		Artist:   m.Artist(),
-		Album:    m.Album(),
+		Title:    m[taglib.Title][0],
+		Artist:   m[taglib.Artist][0],
+		Album:    m[taglib.Album][0],
 		Track:    uint16(trackNum),
-		Year:     uint16(m.Year()),
-		Cover:    m.Picture(),
+		Year:     uint16(year),
+		Cover:    &cover,
 	}
 	trackIndex++
 	return res, nil
