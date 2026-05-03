@@ -58,8 +58,12 @@ body {
     flex-grow: 1;
 }
 
-.albumTrackEntryBG:hover {
+.albumTrackEntryWrapper:hover {
     background-color: color-mix(in srgb, var(--surface2) 50%, transparent);
+}
+
+.active {
+    border: 1px solid var(--amber);
 }
 
 .navOpt:hover{

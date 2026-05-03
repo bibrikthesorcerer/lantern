@@ -9,6 +9,7 @@
         Lantern
         {{ end }}
     </title>
+    <link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="/static/css/colorscheme.css">
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="stylesheet" href="/static/css/player.css">
@@ -24,8 +25,8 @@
         {{block "content" .}}
         {{ end }}
     </div>
-    {{template "player" .}}
     <script src="/static/js/utils.js"></script>
+    {{template "player" .}}
     {{block "scripts" .}}
     {{end}}
 </body>

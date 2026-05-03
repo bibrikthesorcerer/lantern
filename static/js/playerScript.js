@@ -1,3 +1,5 @@
+import { prevTrack, nextTrack } from "./utils.js";
+
 const audio = document.getElementById('player');
 const btnPlay = document.getElementById('btn-play');
 const iconPlay = document.getElementById('icon-play');
@@ -67,6 +69,20 @@ seekInput.addEventListener('input', () => {
     seekThumb.style.left = seekInput.value + '%';
 });
 
+// prev = restart
+btnPrev.addEventListener('click', () => {
+    if (audio.currentTime <= 3) {
+        prevTrack()
+    }
+    audio.currentTime = 0;
+    if (audio.paused && audio.src) audio.play();
+});
+
+// next = skip to end
+btnNext.addEventListener('click', () => {
+    nextTrack()
+});
+
 // volume
 volInput.addEventListener('input', () => {
     audio.volume = volInput.value;
@@ -98,15 +114,4 @@ btnLoop.addEventListener('click', () => {
 // shuffle (visual only for single file)
 btnShuffle.addEventListener('click', () => {
     btnShuffle.classList.toggle('active');
-});
-
-// prev = restart
-btnPrev.addEventListener('click', () => {
-    audio.currentTime = 0;
-    if (audio.paused && audio.src) audio.play();
-});
-
-// next = skip to end
-btnNext.addEventListener('click', () => {
-    if (audio.duration) audio.currentTime = audio.duration - 0.1;
 });

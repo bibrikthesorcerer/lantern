@@ -4,11 +4,11 @@ const albumList = document.getElementById("albumlist")
 
 function createTrack(track) {
     const root = document.createElement("div")
-    className(root, "albumTrackEntryBG flex flex-row justify-between px-4 py-2 items-center mb-2 rounded transition-colors duration-300")
+    className(root, "albumTrackEntryWrapper flex flex-row justify-between px-4 py-2 items-center mb-2 rounded transition-colors duration-300")
     root.setAttribute("data-title", `${track.title}`)
     root.setAttribute("data-artist", `${track.artist}`)
     root.setAttribute("data-id", `${track.id}`)
-    
+
     const entry = document.createElement("div")
     className(entry, "albumTrackEntry")
     root.appendChild(entry)
