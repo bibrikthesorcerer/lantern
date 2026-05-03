@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"music-streamer/middleware"
 	"net/http"
 	"time"
 
 	clog "github.com/charmbracelet/log"
-	"github.com/dhowden/tag"
+	"go.senan.xyz/taglib"
 )
 
 type MusicServer struct {
@@ -15,17 +16,22 @@ type MusicServer struct {
 	conf    *Config
 }
 
+type AlbumCover struct {
+	taglib.ImageDesc
+	Data []byte // Raw picture data.
+}
+
 type Track struct {
-	ID       uint16       `json:"id"`
-	Path     string       `json:"path"`
-	Title    string       `json:"title"`
-	Artist   string       `json:"artist"`
-	Album    string       `json:"album"`
-	Track    uint16       `json:"track"`
-	Year     uint16       `json:"-"`
-	Filename string       `json:"filename"`
-	ModTime  time.Time    `json:"modtime"`
-	Cover    *tag.Picture `json:"-"`
+	ID       uint16      `json:"id"`
+	Path     string      `json:"path"`
+	Title    string      `json:"title"`
+	Artist   string      `json:"artist"`
+	Album    string      `json:"album"`
+	Track    uint16      `json:"track"`
+	Year     uint16      `json:"-"`
+	Filename string      `json:"filename"`
+	ModTime  time.Time   `json:"modtime"`
+	Cover    *AlbumCover `json:"-"`
 }
 
 type Album struct {
@@ -45,9 +51,15 @@ func NewServer(c *Config) (*MusicServer, error) {
 	return &MusicServer{library: library, albums: albums, conf: c}, nil
 }
 
-func (s *MusicServer) ListenAndServe() {
+func (s *MusicServer) RunServer() error {
+	router := SetUpRouting(s)
+
 	addrString := fmt.Sprintf(":%d", s.conf.Port)
+	srv := &http.Server{
+		Addr:    addrString,
+		Handler: middleware.Logging(router),
+	}
+
 	clog.Infof("Launching server on %s", addrString)
-	err := http.ListenAndServe(addrString, nil)
-	clog.Fatalf("Server shutdown: %s", err)
+	return fmt.Errorf("server shutdown: %w", srv.ListenAndServe())
 }

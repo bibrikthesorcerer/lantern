@@ -55,9 +55,8 @@ func main() {
 	if err != nil {
 		clog.Fatalf("NewServer setup fail: %s", err)
 	}
-	SetUpMapping(s)
 
 	printAddrQr(getURL(*s.conf))
 
-	s.ListenAndServe()
+	clog.Fatal(s.RunServer())
 }

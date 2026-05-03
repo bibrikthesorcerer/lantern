@@ -18,18 +18,22 @@ import (
 //go:embed static/*
 var staticFiles embed.FS
 
-func SetUpMapping(s *MusicServer) {
+func SetUpRouting(s *MusicServer) *http.ServeMux {
+	router := http.NewServeMux()
+
 	fs := http.FileServer(http.FS(staticFiles))
-	http.Handle("GET /static/", fs)
-	http.HandleFunc("GET /{$}", s.handleHome)
-	http.HandleFunc("GET /tracks", s.handleTrackList)
-	http.HandleFunc("GET /albums", s.handleAlbumList)
-	http.HandleFunc("GET /api/stream/{id}", s.handleStream)
-	http.HandleFunc("GET /api/tracks", s.handleTracks)
-	http.HandleFunc("GET /api/cover/{id}", s.handleCover)
-	http.HandleFunc("GET /api/albums", s.handleAlbums)
-	http.HandleFunc("GET /api/tracks/{id}/download", s.handleTrackDownload)
-	http.HandleFunc("GET /api/search", s.handleSearch)
+	router.Handle("GET /static/", fs)
+	router.HandleFunc("GET /{$}", s.handleHome)
+	router.HandleFunc("GET /tracks", s.handleTrackList)
+	router.HandleFunc("GET /albums", s.handleAlbumList)
+	router.HandleFunc("GET /api/stream/{id}", s.handleStream)
+	router.HandleFunc("GET /api/tracks", s.handleTracks)
+	router.HandleFunc("GET /api/cover/{id}", s.handleCover)
+	router.HandleFunc("GET /api/albums", s.handleAlbums)
+	router.HandleFunc("GET /api/tracks/{id}/download", s.handleTrackDownload)
+	router.HandleFunc("GET /api/search", s.handleSearch)
+
+	return router
 }
 
 func (s *MusicServer) handleHome(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +43,6 @@ func (s *MusicServer) handleHome(w http.ResponseWriter, r *http.Request) {
 		"static/player.html",
 		"static/home.html",
 	}
-	// tmpl, err := template.ParseFiles(files...)
 	tmpl, err := template.ParseFS(staticFiles, files...)
 	if err != nil {
 		clog.Errorf("couldn't parse templates: %s", err)
@@ -75,6 +78,7 @@ func (s *MusicServer) handleStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cannot open file", http.StatusInternalServerError)
 	}
 	defer f.Close()
+	w.Header().Set("Cache-Control", "no-cache")
 	http.ServeContent(w, r, track.Filename, track.ModTime, f)
 }
 
@@ -97,7 +101,6 @@ func (s *MusicServer) handleTrackList(w http.ResponseWriter, r *http.Request) {
 		"static/player.html",
 		"static/tracks_page.html",
 	}
-	// tmpl, err := template.ParseFiles(files...)
 	tmpl, err := template.ParseFS(staticFiles, files...)
 	if err != nil {
 		clog.Errorf("couldn't parse templates: %s", err)
@@ -156,7 +159,6 @@ func (s *MusicServer) handleAlbumList(w http.ResponseWriter, r *http.Request) {
 		"static/player.html",
 		"static/albums_page.html",
 	}
-	// tmpl, err := template.ParseFiles(files...)
 	tmpl, err := template.ParseFS(staticFiles, files...)
 	if err != nil {
 		clog.Errorf("couldn't parse templates: %s", err)
