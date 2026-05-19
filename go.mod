@@ -1,4 +1,4 @@
-module music-streamer
+module github.com/bibrikthesorcerer/lantern
 
 go 1.26.1
 

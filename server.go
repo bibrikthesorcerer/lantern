@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"music-streamer/middleware"
 	"net/http"
 	"time"
+
+	"github.com/bibrikthesorcerer/lantern/middleware"
 
 	clog "github.com/charmbracelet/log"
 	"go.senan.xyz/taglib"
