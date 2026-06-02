@@ -1,7 +1,14 @@
-    .mono { font-family: 'DM Mono', monospace; }
+    .mono {
+      font-family: 'DM Mono', monospace;
+    }
 
     /* ── Progress bar ───────────────────────────────────── */
-    .seek-wrap { position: relative; width: 100%; height: 8px;}
+    .seek-wrap {
+      position: relative;
+      width: 100%;
+      height: 8px;
+    }
+
     .seek-track {
       position: absolute;
       inset: 0;
@@ -9,6 +16,7 @@
       border-radius: 2px;
       overflow: hidden;
     }
+
     .seek-fill {
       height: 100%;
       background: var(--amber);
@@ -17,6 +25,7 @@
       transition: width 0.1s linear;
       pointer-events: none;
     }
+
     .seek-input {
       position: absolute;
       inset: 0;
@@ -27,7 +36,12 @@
       margin: 0;
       padding: 0;
     }
-    .seek-wrap:hover .seek-track { transform: scaleY(1.5); transition: transform 0.15s; }
+
+    .seek-wrap:hover .seek-track {
+      transform: scaleY(1.5);
+      transition: transform 0.15s;
+    }
+
     .seek-thumb {
       position: absolute;
       top: 50%;
@@ -39,10 +53,13 @@
       pointer-events: none;
       transition: transform 0.15s;
     }
-    .seek-wrap:hover .seek-thumb { transform: translate(-50%, -50%) scale(1); }
+
+    .seek-wrap:hover .seek-thumb {
+      transform: translate(-50%, -50%) scale(1);
+    }
 
     /* ── Volume range ───────────────────────────────────── */
-    input[type="range"].vol {
+    /* input[type="range"].vol {
       -webkit-appearance: none;
       appearance: none;
       height: 3px;
@@ -50,7 +67,6 @@
       border-radius: 2px;
       outline: none;
       cursor: pointer;
-      width: 100%;
     }
     input[type="range"].vol::-webkit-slider-thumb {
       -webkit-appearance: none;
@@ -69,6 +85,92 @@
       background: var(--amber);
       border: none;
       cursor: pointer;
+    } */
+    .volume {
+      position: relative;
+    }
+
+    .volume-popover {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+
+      margin-bottom: 0.5rem;
+      transform: translateX(-50%) scale(0.95);
+
+      opacity: 0;
+      visibility: hidden;
+
+      transition:
+        opacity 150ms ease,
+        transform 150ms ease,
+        visibility 150ms ease;
+    }
+
+    .volume:hover .volume-popover {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) scale(1);
+    }
+
+    .volume-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+
+      padding: 0.75rem;
+
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+
+      background: var(--surface);
+    }
+
+    .volume-slider {
+      width: 0.5rem;
+      height: 6rem;
+
+      -webkit-appearance: none;
+      appearance: none;
+      border-radius: 2px;
+      outline: none;
+
+      cursor: pointer;
+
+      writing-mode: vertical-lr;
+      direction: rtl;
+      background-color: var(--border);
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--amber);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .volume-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.3);
+    }
+
+    .volume-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--amber);
+      border: none;
+      cursor: pointer;
+    }
+
+    .volume-value {
+      min-width: 2ch;
+
+      font-size: 0.75rem;
+      text-align: center;
     }
 
     /* ── Buttons ─────────────────────────────────────────── */
@@ -83,9 +185,18 @@
       color: var(--muted);
       transition: color 0.2s, transform 0.15s;
     }
-    .ctrl-btn:hover { color: var(--text); }
-    .ctrl-btn:active { transform: scale(0.92); }
-    .ctrl-btn.active { color: var(--amber); }
+
+    .ctrl-btn:hover {
+      color: var(--text);
+    }
+
+    .ctrl-btn:active {
+      transform: scale(0.92);
+    }
+
+    .ctrl-btn.active {
+      color: var(--amber);
+    }
 
     .play-btn {
       width: 52px;
@@ -100,11 +211,15 @@
       color: var(--text);
       transition: background 0.2s, border-color 0.2s, transform 0.15s;
     }
+
     .play-btn:hover {
       background: var(--surface3);
       border-color: var(--amber);
     }
-    .play-btn:active { transform: scale(0.93); }
+
+    .play-btn:active {
+      transform: scale(0.93);
+    }
 
     /* ── Card ────────────────────────────────────────────── */
     .player-card {
@@ -113,8 +228,8 @@
       border-radius: 20px;
       width: 100%;
       position: relative;
-      overflow: hidden;
     }
+
     /* .player-card::before {
       content: '';
       position: absolute;
@@ -135,7 +250,10 @@
       flex-shrink: 0;
       overflow: hidden;
     }
-    .track-art svg { color: var(--muted); }
+
+    .track-art svg {
+      color: var(--muted);
+    }
 
     /* ── Status dot ───────────────────────────────────────
     @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }

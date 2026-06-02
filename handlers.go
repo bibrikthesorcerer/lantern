@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"html/template"
+	"io/fs"
 	"maps"
 	"net/http"
 	"os"
@@ -15,14 +16,27 @@ import (
 	clog "github.com/charmbracelet/log"
 )
 
-//go:embed static/*
+//go:embed static
 var staticFiles embed.FS
+
+func getFS() fs.FS {
+	if os.Getenv("DEV") == "1" {
+		clog.Info("DEV==1, using disk FS")
+		return os.DirFS("./static")
+	}
+
+	staticFS, _ := fs.Sub(staticFiles, "static")
+	return staticFS
+}
 
 func SetUpRouting(s *MusicServer) *http.ServeMux {
 	router := http.NewServeMux()
 
-	fs := http.FileServer(http.FS(staticFiles))
-	router.Handle("GET /static/", fs)
+	fs := http.FileServer(http.FS(getFS()))
+	router.Handle(
+		"GET /static/",
+		http.StripPrefix("/static/", fs),
+	)
 	router.HandleFunc("GET /{$}", s.handleHome)
 	router.HandleFunc("GET /tracks", s.handleTrackList)
 	router.HandleFunc("GET /albums", s.handleAlbumList)

@@ -14,13 +14,10 @@ const volDisplay = document.getElementById('vol-display');
 const btnMute = document.getElementById('btn-mute');
 const iconVol = document.getElementById('icon-vol');
 const iconMute = document.getElementById('icon-mute');
-const trackTitle = document.getElementById('track-title');
-const trackArtist = document.getElementById('track-artist');
 const btnLoop = document.getElementById('btn-loop');
 const btnShuffle = document.getElementById('btn-shuffle');
 const btnPrev = document.getElementById('btn-prev');
 const btnNext = document.getElementById('btn-next');
-const fileInput = document.getElementById('file-input');
 
 let looping = false;
 let prevMuted = false;
