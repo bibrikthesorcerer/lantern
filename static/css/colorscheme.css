@@ -1,12 +1,14 @@
 :root {
-    --amber: #f59e0b;
-    --amber-dim: #92400e;
-    --surface: #100F0F;
-    --surface2: #1c1c1a;
-    --surface3: #252523;
-    --border: #2e2e2c;
-    --text: #e8e6df;
-    --muted: #6b6b67;
-    --spacing: 0.25rem;
+    --accent: #ffb347;
+    --accent-dim: #7c4a11;
 
+    --surface: #0d0c0b;
+    --surface2: #171513;
+    --surface3: #201d1a;
+
+    --border: #2f2a25;
+
+    --text: #efe7d8;
+    --muted: #8a7f72;
+    --spacing: 0.25rem
 }

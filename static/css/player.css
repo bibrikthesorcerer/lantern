@@ -19,7 +19,7 @@
 
     .seek-fill {
       height: 100%;
-      background: var(--amber);
+      background: var(--accent);
       border-radius: 2px;
       width: 0%;
       transition: width 0.1s linear;
@@ -48,7 +48,7 @@
       transform: translate(-50%, -50%) scale(0);
       width: 18px;
       height: 18px;
-      background: var(--amber);
+      background: var(--accent);
       border-radius: 50%;
       pointer-events: none;
       transition: transform 0.15s;
@@ -73,7 +73,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--amber);
+      background: var(--accent);
       cursor: pointer;
       transition: transform 0.15s;
     }
@@ -82,7 +82,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--amber);
+      background: var(--accent);
       border: none;
       cursor: pointer;
     } */
@@ -148,7 +148,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--amber);
+      background: var(--accent);
       cursor: pointer;
       transition: transform 0.15s;
     }
@@ -161,7 +161,7 @@
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: var(--amber);
+      background: var(--accent);
       border: none;
       cursor: pointer;
     }
@@ -195,7 +195,7 @@
     }
 
     .ctrl-btn.active {
-      color: var(--amber);
+      color: var(--accent);
     }
 
     .play-btn {
@@ -214,7 +214,7 @@
 
     .play-btn:hover {
       background: var(--surface3);
-      border-color: var(--amber);
+      border-color: var(--accent);
     }
 
     .play-btn:active {
@@ -261,6 +261,6 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--amber);
+      background: var(--accent);
       animation: pulse-dot 1.2s ease-in-out infinite;
     } */

@@ -63,11 +63,11 @@ body {
 }
 
 .active {
-    border: 1px solid var(--amber);
+    border: 1px solid var(--accent);
 }
 
 .navOpt:hover{
-    color: var(--amber);
+    color: var(--accent);
     transition-duration: 300ms;
     transition: color;
 }
