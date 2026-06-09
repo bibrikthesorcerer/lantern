@@ -3,53 +3,32 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"time"
 
-	"github.com/bibrikthesorcerer/lantern/middleware"
+	"github.com/bibrikthesorcerer/lantern/internal/library"
+	"github.com/bibrikthesorcerer/lantern/internal/middleware"
 
 	clog "github.com/charmbracelet/log"
-	"go.senan.xyz/taglib"
 )
 
 type MusicServer struct {
-	library map[uint16]Track
-	albums  map[string]Album
-	conf    *Config
-}
-
-type AlbumCover struct {
-	taglib.ImageDesc
-	Data []byte // Raw picture data.
-}
-
-type Track struct {
-	ID       uint16      `json:"id"`
-	Path     string      `json:"path"`
-	Title    string      `json:"title"`
-	Artist   string      `json:"artist"`
-	Album    string      `json:"album"`
-	Track    uint16      `json:"track"`
-	Year     uint16      `json:"-"`
-	Filename string      `json:"filename"`
-	ModTime  time.Time   `json:"modtime"`
-	Cover    *AlbumCover `json:"-"`
-}
-
-type Album struct {
-	ID          uint16  `json:"id"`
-	Year        uint16  `json:"year"`
-	Title       string  `json:"title"`
-	AlbumArtist string  `json:"artist"`
-	TotalTracks uint16  `json:"total_tracks"`
-	Tracks      []Track `json:"tracks"`
+	repo *library.TrackRepository
+	conf *Config
 }
 
 func NewServer(c *Config) (*MusicServer, error) {
-	library, albums, err := scanLibrary(c.Dir)
+	libraryPresent := library.Exists("./library.db")
+	repo, err := library.NewTrackRepository("./library.db")
 	if err != nil {
-		return nil, fmt.Errorf("library scan: %w", err)
+		return nil, fmt.Errorf("library setup: %w", err)
 	}
-	return &MusicServer{library: library, albums: albums, conf: c}, nil
+
+	if !libraryPresent {
+		clog.Info("library not present, starting full scan...")
+		if err := repo.ImportLibrary(c.Dir); err != nil {
+			return nil, fmt.Errorf("library scan: %w", err)
+		}
+	}
+	return &MusicServer{repo: repo, conf: c}, nil
 }
 
 func (s *MusicServer) RunServer() error {

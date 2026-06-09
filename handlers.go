@@ -1,15 +1,12 @@
 package main
 
 import (
-	"cmp"
 	"embed"
 	"encoding/json"
 	"html/template"
 	"io/fs"
-	"maps"
 	"net/http"
 	"os"
-	"slices"
 	"strconv"
 
 	"github.com/charmbracelet/log"
@@ -78,10 +75,11 @@ func (s *MusicServer) handleStream(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ID must be an integer", http.StatusBadRequest)
 		return
 	}
-	track, ok := s.library[uint16(id)]
 
-	if !ok {
-		log.Infof("404 Response for track #%d", id)
+	track, err := s.repo.GetTrackByID(uint16(id))
+
+	if err != nil {
+		log.Infof("404 Response for track #%d. %s", id, err)
 		http.NotFound(w, r)
 		return
 	}
@@ -98,10 +96,17 @@ func (s *MusicServer) handleStream(w http.ResponseWriter, r *http.Request) {
 
 func (s *MusicServer) handleTracks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	tracks := slices.SortedFunc(maps.Values(s.library), func(a, b Track) int {
-		return cmp.Compare(a.ID, b.ID)
-	})
-	err := json.NewEncoder(w).Encode(tracks)
+	// tracks := slices.SortedFunc(maps.Values(s.library), func(a, b Track) int {
+	// 	return cmp.Compare(a.ID, b.ID)
+	// })
+
+	tracks, err := s.repo.GetAllTracks()
+	if err != nil {
+		clog.Errorf("get album list json: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	err = json.NewEncoder(w).Encode(tracks)
 	if err != nil {
 		log.Errorf("handleTracks: %s", err)
 		http.Error(w, "cannot serialize Tracks objects", http.StatusInternalServerError)
@@ -137,8 +142,8 @@ func (s *MusicServer) handleCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	track, ok := s.library[uint16(id)]
-	if !ok {
+	track, err := s.repo.GetTrackByID(uint16(id))
+	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -153,13 +158,20 @@ func (s *MusicServer) handleCover(w http.ResponseWriter, r *http.Request) {
 
 func (s *MusicServer) handleAlbums(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	albums := slices.SortedFunc(maps.Values(s.albums), func(a, b Album) int {
-		return cmp.Compare(a.ID, b.ID)
-	})
-	for _, a := range albums {
-		slices.SortFunc(a.Tracks, func(a, b Track) int { return cmp.Compare(a.Track, b.Track) })
+	// albums := slices.SortedFunc(maps.Values(), func(a, b Album) int {
+	// 	return cmp.Compare(a.ID, b.ID)
+	// })
+	// for _, a := range albums {
+	// 	slices.SortFunc(a.Tracks, func(a, b library.Track) int { return cmp.Compare(a.Track, b.Track) })
+	// }
+
+	albums, err := s.repo.GetAlbumList()
+	if err != nil {
+		clog.Errorf("get album list json: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	err := json.NewEncoder(w).Encode(albums)
+	err = json.NewEncoder(w).Encode(albums)
 	if err != nil {
 		log.Errorf("handleAlbums: %s", err)
 		http.Error(w, "cannot serialize Tracks objects", http.StatusInternalServerError)
@@ -194,7 +206,13 @@ func (s *MusicServer) handleTrackDownload(w http.ResponseWriter, r *http.Request
 		http.Error(w, "ID must be an integer", http.StatusBadRequest)
 		return
 	}
-	track := s.library[uint16(id)]
+
+	track, err := s.repo.GetTrackByID(uint16(id))
+	if err != nil {
+		log.Errorf("get track: %s", err)
+		http.NotFound(w, r)
+		return
+	}
 	w.Header().Set("Content-Disposition", "attachment; filename="+track.Path)
 	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
 	http.ServeFile(w, r, track.Path)

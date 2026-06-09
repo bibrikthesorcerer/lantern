@@ -65,6 +65,47 @@ func createSchema() (*sql.DB, error) {
 	return db, nil
 }
 
+func (r *TrackRepository) GetTrackByID(id uint16) (Track, error) {
+	res := Track{}
+	var mtime int64
+	err := r.db.QueryRow(`
+		SELECT 
+			id, title,
+			artist, album,
+			mtime, size, path
+		FROM tracks
+		WHERE id=?`,
+		id).Scan(
+		&res.ID,
+		&res.Title,
+		&res.Artist,
+		&res.Album,
+		&mtime,
+		&res.Size,
+		&res.Path,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Track{}, ErrTrackNotFound
+	}
+	if err != nil {
+		return Track{}, fmt.Errorf("get track: %w", err)
+	}
+
+	res.ModTime = time.Unix(mtime, 0)
+
+	return res, nil
+}
+
+func (r *TrackRepository) GetAlbumList() ([]Album, error) {
+	albums := []Album{}
+	return albums, nil
+}
+
+func (r *TrackRepository) GetAllTracks() ([]Track, error) {
+	tracks := []Track{}
+	return tracks, nil
+}
+
 func (r *TrackRepository) ImportLibrary(path string) error {
 	tx, err := r.db.Begin()
 	if err != nil {
