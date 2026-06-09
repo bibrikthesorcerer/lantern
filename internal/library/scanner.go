@@ -12,6 +12,8 @@ import (
 	"go.senan.xyz/taglib"
 )
 
+type metadata map[string][]string
+
 var audioTypes = []string{"mp3", "wav", "ogg", "flac"}
 var trackIndex uint16 = 0
 
@@ -51,6 +53,49 @@ func ScanLibrary(dir string, repoInsertFn func(Track) error) error {
 	return err
 }
 
+func firstInTag(m metadata, key string) string {
+	v, ok := m[key]
+	if !ok || len(v) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(v[0])
+}
+
+func extractTrackNum(m metadata) uint16 {
+	if v := firstInTag(m, taglib.TrackNumber); v != "" {
+		trackStr, _, _ := strings.Cut(v, "/")
+		trNum, err := strconv.ParseUint(trackStr, 10, 16)
+		if err != nil {
+			return 0
+		}
+		return uint16(trNum)
+	}
+	return 0
+}
+
+func extractYear(m metadata) uint16 {
+	v := firstInTag(m, taglib.Date)
+
+	if len(v) >= 4 {
+		v = v[:4]
+	}
+
+	year, err := strconv.ParseUint(v, 10, 16)
+	if err != nil {
+		return 0
+	}
+
+	return uint16(year)
+}
+
+func extractAlbumArtist(m metadata) string {
+	if v := firstInTag(m, taglib.AlbumArtist); v != "" {
+		return v
+	}
+
+	return firstInTag(m, taglib.Artist)
+}
+
 func parseTrack(path string, entry os.DirEntry) (Track, error) {
 	tr, err := entry.Info()
 	if err != nil {
@@ -74,23 +119,18 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 		return Track{}, fmt.Errorf("tag reading: %w", err)
 	}
 
-	rawTrack := m[taglib.TrackNumber][0]
-	trackStr := strings.Split(rawTrack, "/")[0]
-	trackNum, _ := strconv.ParseInt(strings.TrimSpace(trackStr), 10, 16)
-	year, _ := strconv.ParseUint(strings.TrimSpace(m[taglib.Date][0]), 10, 16) //NOTE: wrap every metadata extraction in Trim?
-
 	res := Track{
 		ID:          trackIndex,
 		Path:        path,
 		Filename:    tr.Name(),
 		ModTime:     tr.ModTime(),
 		Size:        tr.Size(),
-		Title:       m[taglib.Title][0],
-		Artist:      m[taglib.Artist][0],
-		Album:       m[taglib.Album][0],
-		AlbumArtist: m[taglib.AlbumArtist][0],
-		TrackNum:    uint16(trackNum),
-		Year:        uint16(year),
+		Title:       firstInTag(m, taglib.Title),
+		Artist:      firstInTag(m, taglib.Artist),
+		Album:       firstInTag(m, taglib.Album),
+		AlbumArtist: extractAlbumArtist(m),
+		TrackNum:    extractTrackNum(m),
+		Year:        extractYear(m),
 		Cover:       &cover,
 	}
 	trackIndex++

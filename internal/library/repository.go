@@ -185,7 +185,7 @@ func (r *LibraryRepository) RebuildAlbums(tx *sql.Tx) error {
 			album, artist,
 			MIN(year) AS year,
 			COUNT(*) AS track_count
-		FROM track
+		FROM tracks
 		GROUP BY album, album_artist
 	`)
 
