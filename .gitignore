@@ -1,4 +1,6 @@
+# App artifacts
 .test-data/
+*.db
 
 # IDE
 .vscode/

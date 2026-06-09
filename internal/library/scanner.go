@@ -1,4 +1,4 @@
-package main
+package library
 
 import (
 	"fmt"
@@ -9,13 +9,11 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/log"
-	clog "github.com/charmbracelet/log"
 	"go.senan.xyz/taglib"
 )
 
 var audioTypes = []string{"mp3", "wav", "ogg", "flac"}
 var trackIndex uint16 = 0
-var albumIndex uint16 = 0
 
 func isSupportedAudio(name string) bool {
 	_, ext, found := strings.Cut(name, ".")
@@ -26,10 +24,7 @@ func isSupportedAudio(name string) bool {
 	return slices.Contains(audioTypes, ext)
 }
 
-func scanLibrary(dir string) (map[uint16]Track, map[string]Album, error) {
-	library := make(map[uint16]Track)
-	albums := make(map[string]Album)
-
+func ScanLibrary(dir string, repoInsertFn func(Track) error) error {
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -45,27 +40,15 @@ func scanLibrary(dir string) (map[uint16]Track, map[string]Album, error) {
 			return nil
 		}
 
-		library[track.ID] = track
-
-		al, ok := albums[track.Album]
-		if !ok {
-			clog.Debugf("indexing album: %s, found in track %s", track.Album, track.Path)
-			albums[track.Album] = Album{
-				ID:          albumIndex,
-				Title:       track.Album,
-				Year:        track.Year,
-				AlbumArtist: track.Artist,
-				Tracks:      []Track{track},
-			}
-			albumIndex++
-			return nil
+		err = repoInsertFn(track)
+		if err != nil {
+			return fmt.Errorf("insert: %w", err)
 		}
-		al.Tracks = append(al.Tracks, track)
-		albums[track.Album] = al
+
 		return nil
 	})
 
-	return library, albums, err
+	return err
 }
 
 func parseTrack(path string, entry os.DirEntry) (Track, error) {
@@ -101,6 +84,7 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 		Path:     path,
 		Filename: tr.Name(),
 		ModTime:  tr.ModTime(),
+		Size:     tr.Size(),
 		Title:    m[taglib.Title][0],
 		Artist:   m[taglib.Artist][0],
 		Album:    m[taglib.Album][0],
