@@ -11,7 +11,7 @@ import (
 )
 
 type MusicServer struct {
-	repo *library.TrackRepository
+	repo *library.LibraryRepository
 	conf *Config
 }
 

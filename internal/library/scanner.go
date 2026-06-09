@@ -80,17 +80,18 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 	year, _ := strconv.ParseUint(strings.TrimSpace(m[taglib.Date][0]), 10, 16) //NOTE: wrap every metadata extraction in Trim?
 
 	res := Track{
-		ID:       trackIndex,
-		Path:     path,
-		Filename: tr.Name(),
-		ModTime:  tr.ModTime(),
-		Size:     tr.Size(),
-		Title:    m[taglib.Title][0],
-		Artist:   m[taglib.Artist][0],
-		Album:    m[taglib.Album][0],
-		Track:    uint16(trackNum),
-		Year:     uint16(year),
-		Cover:    &cover,
+		ID:          trackIndex,
+		Path:        path,
+		Filename:    tr.Name(),
+		ModTime:     tr.ModTime(),
+		Size:        tr.Size(),
+		Title:       m[taglib.Title][0],
+		Artist:      m[taglib.Artist][0],
+		Album:       m[taglib.Album][0],
+		AlbumArtist: m[taglib.AlbumArtist][0],
+		TrackNum:    uint16(trackNum),
+		Year:        uint16(year),
+		Cover:       &cover,
 	}
 	trackIndex++
 	return res, nil

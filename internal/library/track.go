@@ -12,17 +12,18 @@ type AlbumCover struct {
 }
 
 type Track struct {
-	ID       uint16      `json:"id"`
-	Path     string      `json:"path"`
-	Title    string      `json:"title"`
-	Artist   string      `json:"artist"`
-	Album    string      `json:"album"`
-	Track    uint16      `json:"track"`
-	Year     uint16      `json:"-"`
-	Filename string      `json:"filename"`
-	ModTime  time.Time   `json:"modtime"`
-	Size     int64       `json:"size"`
-	Cover    *AlbumCover `json:"-"`
+	ID          uint16      `json:"id"`
+	Path        string      `json:"path"`
+	Title       string      `json:"title"`
+	Artist      string      `json:"artist"`
+	Album       string      `json:"album"`
+	AlbumArtist string      `json:"album_artist"`
+	TrackNum    uint16      `json:"track"`
+	Year        uint16      `json:"-"`
+	Filename    string      `json:"filename"`
+	ModTime     time.Time   `json:"modtime"`
+	Size        int64       `json:"size"`
+	Cover       *AlbumCover `json:"-"`
 }
 
 type Album struct {
