@@ -20,6 +20,7 @@ type Track struct {
 	AlbumArtist string      `json:"album_artist"`
 	TrackNum    uint16      `json:"track"`
 	Year        uint16      `json:"-"`
+	AlbumID     uint16      `json:"album_id"`
 	Filename    string      `json:"filename"`
 	ModTime     time.Time   `json:"modtime"`
 	Size        int64       `json:"size"`
@@ -32,5 +33,5 @@ type Album struct {
 	Title       string  `json:"title"`
 	AlbumArtist string  `json:"artist"`
 	TotalTracks uint16  `json:"total_tracks"`
-	Tracks      []Track `json:"tracks"`
+	Tracks      []Track `json:"tracks,omitempty"`
 }

@@ -52,32 +52,11 @@ func createSchema() (*sql.DB, error) {
 	}
 	defer tx.Rollback()
 
-	// TODO: autoincrement on id - could break????
-	_, err = tx.Exec(`
-	CREATE TABLE IF NOT EXISTS tracks(
-		id INTEGER PRIMARY KEY,
-		title TEXT,
-		artist TEXT,
-		album TEXT,
-		album_artist TEXT,
-		track_num INTEGER,
-		year INTEGER,
-		mtime INTEGER,
-		size INTEGER,
-		path TEXT UNIQUE NOT NULL
-	)
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("create tracks table: %w", err)
-	}
-
 	_, err = tx.Exec(`
 	CREATE TABLE IF NOT EXISTS albums(
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title TEXT,
-		album_artist TEXT,
-		year INTEGER,
-		track_count INTEGER
+		album_artist TEXT
 	)
 	`)
 	if err != nil {
@@ -90,6 +69,27 @@ func createSchema() (*sql.DB, error) {
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("create unique albums index: %w", err)
+	}
+
+	// TODO: autoincrement on id - could break????
+	_, err = tx.Exec(`
+	CREATE TABLE IF NOT EXISTS tracks(
+		id INTEGER PRIMARY KEY,
+		title TEXT,
+		artist TEXT,
+		album TEXT,
+		album_artist TEXT,
+		track_num INTEGER,
+		year INTEGER,
+		album_id INTEGER,
+		mtime INTEGER,
+		size INTEGER,
+		path TEXT UNIQUE NOT NULL,
+		FOREIGN KEY (album_id) REFERENCES albums(id)
+	)
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("create tracks table: %w", err)
 	}
 
 	return db, tx.Commit()
@@ -144,18 +144,26 @@ func (r *LibraryRepository) ImportLibrary(path string) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(`INSERT INTO tracks (
-	id, title, artist, album, album_artist, track_num, year, mtime, size, path
+	id, title, artist, album, album_artist, track_num, year, album_id, mtime, size, path
 	)
-	VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return fmt.Errorf("prepare insert stmt: %w", err)
 	}
 
 	err = ScanLibrary(path, func(track Track) error {
-		_, err := stmt.Exec(
+		albumID, err := getOrCreateAlbum(tx, track)
+		if err != nil {
+			return err
+		}
+
+		track.AlbumID = albumID
+
+		_, err = stmt.Exec(
 			track.ID, track.Title, track.Artist,
 			track.Album, track.AlbumArtist, track.TrackNum,
-			track.Year, track.ModTime.Unix(), track.Size, track.Path,
+			track.Year, track.AlbumID, track.ModTime.Unix(),
+			track.Size, track.Path,
 		)
 		return err
 	})
@@ -164,34 +172,18 @@ func (r *LibraryRepository) ImportLibrary(path string) error {
 		return err
 	}
 
-	if err := r.RebuildAlbums(tx); err != nil {
-		return err
-	}
-
 	return tx.Commit()
 }
 
-func (r *LibraryRepository) RebuildAlbums(tx *sql.Tx) error {
-	if _, err := tx.Exec(`DELETE FROM albums`); err != nil {
-		return fmt.Errorf("clear albums: %w", err)
-	}
+func getOrCreateAlbum(tx *sql.Tx, track Track) (uint16, error) {
+	var id uint16
 
-	_, err := tx.Exec(`
-		INSERT INTO albums(
-			title, album_artist,
-			year, track_count
-		)
-		SELECT
-			album, artist,
-			MIN(year) AS year,
-			COUNT(*) AS track_count
-		FROM tracks
-		GROUP BY album, album_artist
-	`)
-
-	if err != nil {
-		return fmt.Errorf("albums rebuild: %w", err)
-	}
-
-	return nil
+	err := tx.QueryRow(`
+		INSERT INTO albums (title, album_artist)
+		VALUES (?, ?)
+		ON CONFLICT (title, album_artist)
+		DO UPDATE SET album_artist = excluded.album_artist
+		RETURNING id
+	`, track.Album, track.AlbumArtist).Scan(&id)
+	return id, err
 }
