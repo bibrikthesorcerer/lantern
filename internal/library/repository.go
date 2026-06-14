@@ -126,9 +126,90 @@ func (r *LibraryRepository) GetTrackByID(id uint16) (Track, error) {
 	return res, nil
 }
 
-func (r *LibraryRepository) GetAlbumList() ([]Album, error) {
+func (r *LibraryRepository) GetAlbums() ([]Album, error) {
 	albums := []Album{}
+	rows, err := r.db.Query(`
+	SELECT
+		a.id, a.title,
+		a.album_artist,
+		MIN(year) AS year,
+		COUNT(*) AS total_tracks
+	FROM albums a
+	LEFT JOIN tracks t ON a.id = t.album_id 
+	GROUP BY a.title, a.album_artist
+	ORDER BY a.id
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("query execution: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		al := Album{}
+		err = rows.Scan(
+			&al.ID, &al.Title,
+			&al.AlbumArtist,
+			&al.Year, &al.TotalTracks,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("row scan err: %w", err)
+		}
+		albums = append(albums, al)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration err: %s", err)
+	}
+
 	return albums, nil
+}
+
+func (r *LibraryRepository) GetAlbumByID(id uint16) (Album, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return Album{}, fmt.Errorf("transaction begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	album := Album{}
+	err = tx.QueryRow(`
+		SELECT id, title, album_artist
+		FROM albums
+		WHERE id = ?
+	`, id).Scan(&album.ID, &album.Title, &album.AlbumArtist)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Album{}, ErrAlbumNotFound
+	}
+	if err != nil {
+		return Album{}, fmt.Errorf("album query: %w", err)
+	}
+
+	fields := "id, title, artist, album, album_artist, track_num, album_id"
+	q := fmt.Sprintf("SELECT %s FROM tracks WHERE album_id = ?", fields)
+	rows, err := tx.Query(q, id)
+	if err != nil {
+		return Album{}, fmt.Errorf("bulk select tracks: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		tr := Track{}
+		err = rows.Scan(
+			&tr.ID, &tr.Title,
+			&tr.Artist, &tr.Album,
+			&tr.AlbumArtist, &tr.TrackNum,
+			&tr.AlbumID,
+		)
+		if err != nil {
+			return Album{}, fmt.Errorf("row scan err: %w", err)
+		}
+
+		album.Tracks = append(album.Tracks, tr)
+	}
+	if err := rows.Err(); err != nil {
+		return Album{}, fmt.Errorf("row iteration err: %w", err)
+	}
+
+	return album, tx.Commit()
 }
 
 func (r *LibraryRepository) GetAllTracks() ([]Track, error) {

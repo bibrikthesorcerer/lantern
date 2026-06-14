@@ -3,12 +3,14 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"html/template"
 	"io/fs"
 	"net/http"
 	"os"
 	"strconv"
 
+	"github.com/bibrikthesorcerer/lantern/internal/library"
 	"github.com/charmbracelet/log"
 	clog "github.com/charmbracelet/log"
 )
@@ -38,6 +40,7 @@ func SetUpRouting(s *MusicServer) *http.ServeMux {
 	router.HandleFunc("GET /tracks", s.handleTrackList)
 	router.HandleFunc("GET /albums", s.handleAlbumList)
 	router.HandleFunc("GET /api/stream/{id}", s.handleStream)
+	router.HandleFunc("GET /api/albums/{id}", s.handleAlbumByID)
 	router.HandleFunc("GET /api/tracks", s.handleTracks)
 	router.HandleFunc("GET /api/cover/{id}", s.handleCover)
 	router.HandleFunc("GET /api/albums", s.handleAlbums)
@@ -158,14 +161,8 @@ func (s *MusicServer) handleCover(w http.ResponseWriter, r *http.Request) {
 
 func (s *MusicServer) handleAlbums(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	// albums := slices.SortedFunc(maps.Values(), func(a, b Album) int {
-	// 	return cmp.Compare(a.ID, b.ID)
-	// })
-	// for _, a := range albums {
-	// 	slices.SortFunc(a.Tracks, func(a, b library.Track) int { return cmp.Compare(a.Track, b.Track) })
-	// }
 
-	albums, err := s.repo.GetAlbumList()
+	albums, err := s.repo.GetAlbums()
 	if err != nil {
 		clog.Errorf("get album list json: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -174,8 +171,36 @@ func (s *MusicServer) handleAlbums(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(albums)
 	if err != nil {
 		log.Errorf("handleAlbums: %s", err)
-		http.Error(w, "cannot serialize Tracks objects", http.StatusInternalServerError)
+		http.Error(w, "cannot serialize Album objects", http.StatusInternalServerError)
 	}
+}
+
+func (s *MusicServer) handleAlbumByID(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		log.Errorf("handleStream: %s", err)
+		http.Error(w, "ID must be an integer", http.StatusBadRequest)
+		return
+	}
+
+	albums, err := s.repo.GetAlbumByID(uint16(id))
+	if errors.Is(err, library.ErrAlbumNotFound) {
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		clog.Errorf("get album list json: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(albums)
+	if err != nil {
+		log.Errorf("handleAlbums: %s", err)
+		http.Error(w, "cannot serialize Album objects", http.StatusInternalServerError)
+	}
+
 }
 
 func (s *MusicServer) handleAlbumList(w http.ResponseWriter, r *http.Request) {
