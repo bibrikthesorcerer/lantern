@@ -12,26 +12,34 @@ type AlbumCover struct {
 }
 
 type Track struct {
-	ID          uint16      `json:"id"`
-	Path        string      `json:"path"`
+	ID       uint16        `json:"id"`
+	Metadata TrackMetadata `json:"metadata"`
+	FSInfo   TrackFSInfo   `json:"fs_info"`
+}
+
+type TrackMetadata struct {
 	Title       string      `json:"title"`
 	Artist      string      `json:"artist"`
 	Album       string      `json:"album"`
 	AlbumArtist string      `json:"album_artist"`
 	TrackNum    uint16      `json:"track"`
 	Year        uint16      `json:"-"`
-	AlbumID     uint16      `json:"album_id"`
-	Filename    string      `json:"filename"`
-	ModTime     time.Time   `json:"modtime"`
-	Size        int64       `json:"size"`
 	Cover       *AlbumCover `json:"-"`
+	AlbumID     uint16      `json:"album_id,omitempty"`
 }
 
-type Album struct {
-	ID          uint16  `json:"id"`
-	Year        uint16  `json:"year"`
-	Title       string  `json:"title"`
-	AlbumArtist string  `json:"artist"`
-	TotalTracks uint16  `json:"total_tracks"`
-	Tracks      []Track `json:"tracks,omitempty"`
+type TrackFSInfo struct {
+	Path     string    `json:"path"`
+	Filename string    `json:"filename"`
+	ModTime  time.Time `json:"modtime"`
+	Size     int64     `json:"size"`
+}
+
+// TrackSummary represents a compact view of track's crucial metadata.
+type TrackSummary struct {
+	ID       uint16 `json:"id"`
+	Title    string `json:"title"`
+	Artist   string `json:"artist"`
+	Album    string `json:"album"`
+	TrackNum uint16 `json:"track"`
 }

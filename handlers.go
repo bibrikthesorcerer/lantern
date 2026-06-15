@@ -87,21 +87,18 @@ func (s *MusicServer) handleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f, err := os.Open(track.Path)
+	f, err := os.Open(track.FSInfo.Path)
 	if err != nil {
 		log.Errorf("handleStream: %s", err)
 		http.Error(w, "cannot open file", http.StatusInternalServerError)
 	}
 	defer f.Close()
 	w.Header().Set("Cache-Control", "no-cache")
-	http.ServeContent(w, r, track.Filename, track.ModTime, f)
+	http.ServeContent(w, r, track.FSInfo.Filename, track.FSInfo.ModTime, f)
 }
 
 func (s *MusicServer) handleTracks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	// tracks := slices.SortedFunc(maps.Values(s.library), func(a, b Track) int {
-	// 	return cmp.Compare(a.ID, b.ID)
-	// })
 
 	tracks, err := s.repo.GetAllTracks()
 	if err != nil {
@@ -140,7 +137,7 @@ func (s *MusicServer) handleTrackList(w http.ResponseWriter, r *http.Request) {
 func (s *MusicServer) handleCover(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		log.Errorf("handleStream: %s", err)
+		log.Errorf("handleCover: %s", err)
 		http.Error(w, "ID must be an integer", http.StatusBadRequest)
 		return
 	}
@@ -150,13 +147,13 @@ func (s *MusicServer) handleCover(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if track.Cover == nil {
+	if track.Metadata.Cover == nil {
 		//TODO: serve a default placeholder image
 		http.ServeFile(w, r, "static/placeholder.png")
 		return
 	}
-	w.Header().Set("Content-Type", track.Cover.MIMEType)
-	w.Write(track.Cover.Data)
+	w.Header().Set("Content-Type", track.Metadata.Cover.MIMEType)
+	w.Write(track.Metadata.Cover.Data)
 }
 
 func (s *MusicServer) handleAlbums(w http.ResponseWriter, r *http.Request) {
@@ -238,9 +235,9 @@ func (s *MusicServer) handleTrackDownload(w http.ResponseWriter, r *http.Request
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Disposition", "attachment; filename="+track.Path)
+	w.Header().Set("Content-Disposition", "attachment; filename="+track.FSInfo.Path)
 	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-	http.ServeFile(w, r, track.Path)
+	http.ServeFile(w, r, track.FSInfo.Path)
 }
 
 func (s *MusicServer) handleSearch(w http.ResponseWriter, r *http.Request) {

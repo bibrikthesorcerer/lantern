@@ -120,18 +120,22 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 	}
 
 	res := Track{
-		ID:          trackIndex,
-		Path:        path,
-		Filename:    tr.Name(),
-		ModTime:     tr.ModTime(),
-		Size:        tr.Size(),
-		Title:       firstInTag(m, taglib.Title),
-		Artist:      firstInTag(m, taglib.Artist),
-		Album:       firstInTag(m, taglib.Album),
-		AlbumArtist: extractAlbumArtist(m),
-		TrackNum:    extractTrackNum(m),
-		Year:        extractYear(m),
-		Cover:       &cover,
+		ID: trackIndex,
+		Metadata: TrackMetadata{
+			Title:       firstInTag(m, taglib.Title),
+			Artist:      firstInTag(m, taglib.Artist),
+			Album:       firstInTag(m, taglib.Album),
+			AlbumArtist: extractAlbumArtist(m),
+			TrackNum:    extractTrackNum(m),
+			Year:        extractYear(m),
+			Cover:       &cover,
+		},
+		FSInfo: TrackFSInfo{
+			Path:     path,
+			Filename: tr.Name(),
+			ModTime:  tr.ModTime(),
+			Size:     tr.Size(),
+		},
 	}
 	trackIndex++
 	return res, nil

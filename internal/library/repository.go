@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -107,12 +108,12 @@ func (r *LibraryRepository) GetTrackByID(id uint16) (Track, error) {
 		WHERE id=?`,
 		id).Scan(
 		&res.ID,
-		&res.Title,
-		&res.Artist,
-		&res.Album,
+		&res.Metadata.Title,
+		&res.Metadata.Artist,
+		&res.Metadata.Album,
 		&mtime,
-		&res.Size,
-		&res.Path,
+		&res.FSInfo.Size,
+		&res.FSInfo.Path,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Track{}, ErrTrackNotFound
@@ -121,7 +122,8 @@ func (r *LibraryRepository) GetTrackByID(id uint16) (Track, error) {
 		return Track{}, fmt.Errorf("get track: %w", err)
 	}
 
-	res.ModTime = time.Unix(mtime, 0)
+	res.FSInfo.ModTime = time.Unix(mtime, 0)
+	_, res.FSInfo.Filename = filepath.Split(res.FSInfo.Path)
 
 	return res, nil
 }
@@ -163,58 +165,89 @@ func (r *LibraryRepository) GetAlbums() ([]Album, error) {
 	return albums, nil
 }
 
-func (r *LibraryRepository) GetAlbumByID(id uint16) (Album, error) {
+func (r *LibraryRepository) GetAlbumByID(id uint16) (AlbumDetails, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
-		return Album{}, fmt.Errorf("transaction begin: %w", err)
+		return AlbumDetails{}, fmt.Errorf("transaction begin: %w", err)
 	}
 	defer tx.Rollback()
 
-	album := Album{}
+	album := AlbumDetails{}
 	err = tx.QueryRow(`
 		SELECT id, title, album_artist
 		FROM albums
 		WHERE id = ?
 	`, id).Scan(&album.ID, &album.Title, &album.AlbumArtist)
 	if errors.Is(err, sql.ErrNoRows) {
-		return Album{}, ErrAlbumNotFound
+		return AlbumDetails{}, ErrAlbumNotFound
 	}
 	if err != nil {
-		return Album{}, fmt.Errorf("album query: %w", err)
+		return AlbumDetails{}, fmt.Errorf("album query: %w", err)
 	}
 
-	fields := "id, title, artist, album, album_artist, track_num, album_id"
-	q := fmt.Sprintf("SELECT %s FROM tracks WHERE album_id = ?", fields)
+	fields := "id, title, artist, album, track_num"
+	q := fmt.Sprintf("SELECT %s FROM tracks WHERE album_id = ? ORDER BY track_num", fields)
 	rows, err := tx.Query(q, id)
 	if err != nil {
-		return Album{}, fmt.Errorf("bulk select tracks: %w", err)
+		return AlbumDetails{}, fmt.Errorf("bulk select tracks: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		tr := Track{}
+		tr := TrackSummary{}
 		err = rows.Scan(
 			&tr.ID, &tr.Title,
 			&tr.Artist, &tr.Album,
-			&tr.AlbumArtist, &tr.TrackNum,
-			&tr.AlbumID,
+			&tr.TrackNum,
 		)
 		if err != nil {
-			return Album{}, fmt.Errorf("row scan err: %w", err)
+			return AlbumDetails{}, fmt.Errorf("row scan err: %w", err)
 		}
 
 		album.Tracks = append(album.Tracks, tr)
 	}
 	if err := rows.Err(); err != nil {
-		return Album{}, fmt.Errorf("row iteration err: %w", err)
+		return AlbumDetails{}, fmt.Errorf("row iteration err: %w", err)
 	}
 
 	return album, tx.Commit()
 }
 
-func (r *LibraryRepository) GetAllTracks() ([]Track, error) {
-	tracks := []Track{}
-	return tracks, nil
+func (r *LibraryRepository) GetAllTracks() ([]TrackSummary, error) {
+	tracks := []TrackSummary{}
+	tx, err := r.db.Begin()
+	if err != nil {
+		return []TrackSummary{}, fmt.Errorf("transaction begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	rows, err := tx.Query(`
+		SELECT id, title, artist, album, track_num
+		FROM tracks
+	`)
+	if err != nil {
+		return []TrackSummary{}, fmt.Errorf("bulk select tracks: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		tr := TrackSummary{}
+		err = rows.Scan(
+			&tr.ID, &tr.Title,
+			&tr.Artist, &tr.Album,
+			&tr.TrackNum,
+		)
+		if err != nil {
+			return []TrackSummary{}, fmt.Errorf("row scan err: %w", err)
+		}
+
+		tracks = append(tracks, tr)
+	}
+	if err := rows.Err(); err != nil {
+		return []TrackSummary{}, fmt.Errorf("row iteration err: %w", err)
+	}
+
+	return tracks, tx.Commit()
 }
 
 func (r *LibraryRepository) ImportLibrary(path string) error {
@@ -238,13 +271,15 @@ func (r *LibraryRepository) ImportLibrary(path string) error {
 			return err
 		}
 
-		track.AlbumID = albumID
+		track.Metadata.AlbumID = albumID
 
 		_, err = stmt.Exec(
-			track.ID, track.Title, track.Artist,
-			track.Album, track.AlbumArtist, track.TrackNum,
-			track.Year, track.AlbumID, track.ModTime.Unix(),
-			track.Size, track.Path,
+			track.ID, track.Metadata.Title, track.Metadata.Artist,
+			track.Metadata.Album, track.Metadata.AlbumArtist,
+			track.Metadata.TrackNum, track.Metadata.Year,
+			track.Metadata.AlbumID,
+			track.FSInfo.ModTime.Unix(),
+			track.FSInfo.Size, track.FSInfo.Path,
 		)
 		return err
 	})
@@ -265,6 +300,6 @@ func getOrCreateAlbum(tx *sql.Tx, track Track) (uint16, error) {
 		ON CONFLICT (title, album_artist)
 		DO UPDATE SET album_artist = excluded.album_artist
 		RETURNING id
-	`, track.Album, track.AlbumArtist).Scan(&id)
+	`, track.Metadata.Album, track.Metadata.AlbumArtist).Scan(&id)
 	return id, err
 }
