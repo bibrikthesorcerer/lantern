@@ -31,20 +31,14 @@ const (
 )
 
 type LibraryRepository struct {
-	db *sql.DB
+	db     *sql.DB
+	dbPath string
 }
 
 func NewTrackRepository(path string) (*LibraryRepository, error) {
 	var err error
-	r := LibraryRepository{}
-	if !Exists(path) {
-		r.db, err = createSchema()
-		if err != nil {
-			return &r, fmt.Errorf("create schema: %w", err)
-		}
-	}
-
-	r.db, err = sql.Open("sqlite", "./library.db")
+	r := LibraryRepository{dbPath: path}
+	r.db, err = sql.Open("sqlite", r.dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open db connection: %w", err)
 	}
@@ -52,27 +46,16 @@ func NewTrackRepository(path string) (*LibraryRepository, error) {
 	return &r, nil
 }
 
-func Exists(path string) bool {
-	_, err := os.Stat(path)
+func (r *LibraryRepository) NeedsImport() bool {
+	_, err := os.Stat(r.dbPath)
 	if errors.Is(err, os.ErrNotExist) {
-		return false
+		return true
 	}
-	return err == nil
+	return err != nil
 }
 
-func createSchema() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "./library.db")
-	if err != nil {
-		return nil, fmt.Errorf("open db connection: %w", err)
-	}
-
-	tx, err := db.Begin()
-	if err != nil {
-		return nil, fmt.Errorf("transaction start: %w", err)
-	}
-	defer tx.Rollback()
-
-	_, err = tx.Exec(`
+func createSchema(tx *sql.Tx) error {
+	_, err := tx.Exec(`
 	CREATE TABLE IF NOT EXISTS albums(
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title TEXT,
@@ -80,7 +63,7 @@ func createSchema() (*sql.DB, error) {
 	)
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("create albums table: %w", err)
+		return fmt.Errorf("create albums table: %w", err)
 	}
 
 	_, err = tx.Exec(`
@@ -88,10 +71,9 @@ func createSchema() (*sql.DB, error) {
 	ON albums(title, album_artist);
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("create unique albums index: %w", err)
+		return fmt.Errorf("create unique albums index: %w", err)
 	}
 
-	// TODO: autoincrement on id - could break????
 	_, err = tx.Exec(`
 	CREATE TABLE IF NOT EXISTS tracks(
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,10 +92,10 @@ func createSchema() (*sql.DB, error) {
 	)
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("create tracks table: %w", err)
+		return fmt.Errorf("create tracks table: %w", err)
 	}
 
-	return db, tx.Commit()
+	return nil
 }
 
 func (r *LibraryRepository) GetTrackByID(id uint16) (Track, error) {
@@ -270,12 +252,17 @@ func (r *LibraryRepository) GetAllTracks() ([]TrackSummary, error) {
 	return tracks, tx.Commit()
 }
 
-func (r *LibraryRepository) ImportLibrary(path string) error {
+func (r *LibraryRepository) ImportLibrary(rootPath string) error {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return fmt.Errorf("trasaction start: %w", err)
 	}
 	defer tx.Rollback()
+
+	err = createSchema(tx)
+	if err != nil {
+		return fmt.Errorf("create schema: %w", err)
+	}
 
 	stmt, err := tx.Prepare(`INSERT INTO tracks (
 	title, artist, album, album_artist, track_num, year, album_id, mtime, size, path
@@ -285,7 +272,7 @@ func (r *LibraryRepository) ImportLibrary(path string) error {
 		return fmt.Errorf("prepare insert stmt: %w", err)
 	}
 
-	err = FullScan(path, func(track Track) error {
+	err = FullScan(rootPath, func(track Track) error {
 		albumID, err := getOrCreateAlbum(tx, track)
 		if err != nil {
 			return err
@@ -311,7 +298,7 @@ func (r *LibraryRepository) ImportLibrary(path string) error {
 	return tx.Commit()
 }
 
-func (r *LibraryRepository) Sync(path string) error {
+func (r *LibraryRepository) Sync(rootPath string) error {
 	return r.RunAsTx(func(tx *sql.Tx) error {
 		tracks, err := getTracksFSInfo(tx)
 		if err != nil {
@@ -334,7 +321,7 @@ func (r *LibraryRepository) Sync(path string) error {
 		defer upsertStmt.Close()
 
 		return SyncScan(
-			path,
+			rootPath,
 			tracks,
 			func(t Track) error {
 				return execUpsertTrack(upsertStmt, t)

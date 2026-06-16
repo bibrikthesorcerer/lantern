@@ -56,18 +56,25 @@ func main() {
 		clog.Fatalf("NewServer setup fail: %s", err)
 	}
 
+	needsImport := s.repo.NeedsImport()
+	if needsImport {
+		clog.Info("library not present, starting full scan")
+		s.repo.ImportLibrary(s.conf.Dir)
+		clog.Info("full scan completed")
+	} else {
+		go func() {
+			clog.Info("starting library sync")
+
+			if err := s.repo.Sync(s.conf.Dir); err != nil {
+				clog.Errorf("library sync failed: %v", err)
+				return
+			}
+
+			clog.Info("library sync completed")
+		}()
+	}
+
 	printAddrQr(getURL(*s.conf))
-
-	go func() {
-		clog.Info("starting library sync")
-
-		if err := s.repo.Sync(s.conf.Dir); err != nil {
-			clog.Errorf("library sync failed: %v", err)
-			return
-		}
-
-		clog.Info("library sync completed")
-	}()
 
 	clog.Fatal(s.RunServer()) // TODO: graceful shutdown
 }

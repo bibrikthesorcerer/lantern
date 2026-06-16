@@ -11,7 +11,8 @@ import (
 func TestConfigSave(t *testing.T) {
 	dir := "./test-data"
 	port := 1234
-	test_conf := Config{Dir: dir, Port: port}
+	dbpath := "./library.db"
+	test_conf := Config{Dir: dir, Port: port, DBPath: dbpath}
 	err := saveConfig(test_conf)
 
 	require.Nil(t, err)
@@ -31,7 +32,8 @@ func TestConfigSave(t *testing.T) {
 func TestConfigLoad(t *testing.T) {
 	dir := "./test-data"
 	port := 1234
-	test_conf := Config{Dir: dir, Port: port}
+	dbpath := "./library.db"
+	test_conf := Config{Dir: dir, Port: port, DBPath: dbpath}
 
 	path, err := configPath()
 	require.Nil(t, err)
