@@ -15,7 +15,6 @@ import (
 type metadata map[string][]string
 
 var audioTypes = []string{"mp3", "wav", "ogg", "flac"}
-var trackIndex uint16 = 0
 
 func isSupportedAudio(name string) bool {
 	_, ext, found := strings.Cut(name, ".")
@@ -26,7 +25,7 @@ func isSupportedAudio(name string) bool {
 	return slices.Contains(audioTypes, ext)
 }
 
-func ScanLibrary(dir string, repoInsertFn func(Track) error) error {
+func FullScan(dir string, repoInsertFn func(Track) error) error {
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -49,6 +48,64 @@ func ScanLibrary(dir string, repoInsertFn func(Track) error) error {
 
 		return nil
 	})
+
+	return err
+}
+
+func SyncScan(dir string, tracks []TrackFSInfo, upsertFn func(Track) error, deleteFn func(path string) error) error {
+	cached := make(map[string]TrackFSInfo, len(tracks))
+
+	for _, t := range tracks {
+		cached[t.Path] = t
+	}
+
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !isSupportedAudio(d.Name()) {
+			return nil
+		}
+
+		cachedTrack, exists := cached[path]
+
+		info, err := d.Info()
+		// dont care about err - file renamed or moved
+		// if renamed - will be upserted to repo as "new"
+		// if moved(deleted) - will be deleted from cache
+		if err != nil {
+			return nil
+		}
+
+		if !exists ||
+			cachedTrack.ModTime != info.ModTime() ||
+			cachedTrack.Size != info.Size() {
+			parsedTrack, err := parseTrack(path, d)
+			if err != nil {
+				log.Printf("skipping %s: %v", path, err)
+				return nil
+			}
+			err = upsertFn(parsedTrack)
+			if err != nil {
+				return err
+			}
+		}
+
+		delete(cached, path)
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	for _, t := range cached {
+		if err = deleteFn(t.Path); err != nil {
+			break
+		}
+	}
 
 	return err
 }
@@ -120,7 +177,6 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 	}
 
 	res := Track{
-		ID: trackIndex,
 		Metadata: TrackMetadata{
 			Title:       firstInTag(m, taglib.Title),
 			Artist:      firstInTag(m, taglib.Artist),
@@ -137,6 +193,5 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 			Size:     tr.Size(),
 		},
 	}
-	trackIndex++
 	return res, nil
 }

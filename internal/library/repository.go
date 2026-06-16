@@ -11,6 +11,25 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const (
+	upsertTrackSQL = `INSERT INTO tracks (
+	title, artist, album, album_artist, track_num, year, album_id, mtime, size, path
+	)
+	VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	ON CONFLICT (path)	
+	DO UPDATE SET
+		title = excluded.title,
+		artist = excluded.artist,
+		album = excluded.album,
+		album_artist = excluded.album_artist,
+		track_num = excluded.track_num,
+		year = excluded.year,
+		album_id = excluded.album_id,
+		mtime = excluded.mtime,
+		size = excluded.size
+	`
+)
+
 type LibraryRepository struct {
 	db *sql.DB
 }
@@ -75,7 +94,7 @@ func createSchema() (*sql.DB, error) {
 	// TODO: autoincrement on id - could break????
 	_, err = tx.Exec(`
 	CREATE TABLE IF NOT EXISTS tracks(
-		id INTEGER PRIMARY KEY,
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		title TEXT,
 		artist TEXT,
 		album TEXT,
@@ -87,6 +106,7 @@ func createSchema() (*sql.DB, error) {
 		size INTEGER,
 		path TEXT UNIQUE NOT NULL,
 		FOREIGN KEY (album_id) REFERENCES albums(id)
+		CONSTRAINT uc_title_artist_album UNIQUE (title, artist, album)
 	)
 	`)
 	if err != nil {
@@ -258,14 +278,14 @@ func (r *LibraryRepository) ImportLibrary(path string) error {
 	defer tx.Rollback()
 
 	stmt, err := tx.Prepare(`INSERT INTO tracks (
-	id, title, artist, album, album_artist, track_num, year, album_id, mtime, size, path
+	title, artist, album, album_artist, track_num, year, album_id, mtime, size, path
 	)
-	VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return fmt.Errorf("prepare insert stmt: %w", err)
 	}
 
-	err = ScanLibrary(path, func(track Track) error {
+	err = FullScan(path, func(track Track) error {
 		albumID, err := getOrCreateAlbum(tx, track)
 		if err != nil {
 			return err
@@ -274,7 +294,7 @@ func (r *LibraryRepository) ImportLibrary(path string) error {
 		track.Metadata.AlbumID = albumID
 
 		_, err = stmt.Exec(
-			track.ID, track.Metadata.Title, track.Metadata.Artist,
+			track.Metadata.Title, track.Metadata.Artist,
 			track.Metadata.Album, track.Metadata.AlbumArtist,
 			track.Metadata.TrackNum, track.Metadata.Year,
 			track.Metadata.AlbumID,
@@ -289,6 +309,106 @@ func (r *LibraryRepository) ImportLibrary(path string) error {
 	}
 
 	return tx.Commit()
+}
+
+func (r *LibraryRepository) Sync(path string) error {
+	return r.RunAsTx(func(tx *sql.Tx) error {
+		tracks, err := getTracksFSInfo(tx)
+		if err != nil {
+			return err
+		}
+
+		deleteStmt, err := tx.Prepare(`
+			DELETE FROM tracks
+			WHERE path = ?
+		`)
+		if err != nil {
+			return err
+		}
+		defer deleteStmt.Close()
+
+		upsertStmt, err := tx.Prepare(upsertTrackSQL)
+		if err != nil {
+			return err
+		}
+		defer upsertStmt.Close()
+
+		return SyncScan(
+			path,
+			tracks,
+			func(t Track) error {
+				return execUpsertTrack(upsertStmt, t)
+			},
+
+			func(path string) error {
+				return execDeleteTrack(deleteStmt, path)
+			},
+		)
+	})
+}
+
+func (r *LibraryRepository) RunAsTx(fn func(tx *sql.Tx) error) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("trasaction start: %w", err)
+	}
+	defer tx.Rollback()
+
+	err = fn(tx)
+
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func getTracksFSInfo(tx *sql.Tx) ([]TrackFSInfo, error) {
+	tracks := []TrackFSInfo{}
+	rows, err := tx.Query(`
+		SELECT path, mtime, size
+		FROM tracks
+	`)
+	if err != nil {
+		return []TrackFSInfo{}, fmt.Errorf("bulk select tracks: %w", err)
+	}
+	defer rows.Close()
+
+	var mtime int64
+	for rows.Next() {
+		tr := TrackFSInfo{}
+		err = rows.Scan(&tr.Path, &mtime, &tr.Size)
+		if err != nil {
+			return []TrackFSInfo{}, fmt.Errorf("row scan err: %w", err)
+		}
+
+		tr.ModTime = time.Unix(mtime, 0)
+		_, tr.Filename = filepath.Split(tr.Path)
+
+		tracks = append(tracks, tr)
+	}
+	if err := rows.Err(); err != nil {
+		return []TrackFSInfo{}, fmt.Errorf("row iteration err: %w", err)
+	}
+
+	return tracks, nil
+}
+
+func execDeleteTrack(stmt *sql.Stmt, path string) error {
+	_, err := stmt.Exec(path)
+	return err
+}
+
+func execUpsertTrack(stmt *sql.Stmt, track Track) error {
+	_, err := stmt.Exec(
+		track.Metadata.Title, track.Metadata.Artist,
+		track.Metadata.Album, track.Metadata.AlbumArtist,
+		track.Metadata.TrackNum, track.Metadata.Year,
+		track.Metadata.AlbumID,
+		track.FSInfo.ModTime.Unix(),
+		track.FSInfo.Size, track.FSInfo.Path,
+	)
+	return err
 }
 
 func getOrCreateAlbum(tx *sql.Tx, track Track) (uint16, error) {

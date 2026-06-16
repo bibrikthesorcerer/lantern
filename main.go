@@ -58,5 +58,16 @@ func main() {
 
 	printAddrQr(getURL(*s.conf))
 
-	clog.Fatal(s.RunServer())
+	go func() {
+		clog.Info("starting library sync")
+
+		if err := s.repo.Sync(s.conf.Dir); err != nil {
+			clog.Errorf("library sync failed: %v", err)
+			return
+		}
+
+		clog.Info("library sync completed")
+	}()
+
+	clog.Fatal(s.RunServer()) // TODO: graceful shutdown
 }

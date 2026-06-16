@@ -16,12 +16,12 @@ type MusicServer struct {
 }
 
 func NewServer(c *Config) (*MusicServer, error) {
-	libraryPresent := library.Exists("./library.db")
 	repo, err := library.NewTrackRepository("./library.db")
 	if err != nil {
 		return nil, fmt.Errorf("library setup: %w", err)
 	}
 
+	libraryPresent := library.Exists("./library.db")
 	if !libraryPresent {
 		clog.Info("library not present, starting full scan...")
 		if err := repo.ImportLibrary(c.Dir); err != nil {
