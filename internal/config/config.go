@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -37,7 +37,7 @@ func configPath() (string, error) {
 	return filepath.Join(dir, "config.json"), nil
 }
 
-func loadConfig() (*Config, error) {
+func LoadConfig() (*Config, error) {
 	path, err := configPath()
 	if err != nil {
 		clog.Errorf("loadConfig: couldn't get config path: %s", err)
@@ -58,7 +58,7 @@ func loadConfig() (*Config, error) {
 	return &config, json.Unmarshal(data, &config)
 }
 
-func saveConfig(c Config) error {
+func SaveConfig(c Config) error {
 	path, err := configPath()
 	if err != nil {
 		clog.Errorf("saveConfig: couldn't get config path: %s", err)
@@ -74,7 +74,7 @@ func saveConfig(c Config) error {
 	return os.WriteFile(path, data, 0664)
 }
 
-func ensureConfig() (*Config, error) {
+func EnsureConfig() (*Config, error) {
 	p, err := configPath()
 	if err != nil {
 		return nil, fmt.Errorf("get config path: %w", err)
@@ -86,7 +86,7 @@ func ensureConfig() (*Config, error) {
 			return nil, fmt.Errorf("interactive fill: %w", err)
 		}
 
-		if err = saveConfig(conf); err != nil {
+		if err = SaveConfig(conf); err != nil {
 			return nil, fmt.Errorf("save config to %s: %w", p, err)
 		}
 		clog.Infof("new config generated and saved at %s", p)
@@ -94,7 +94,7 @@ func ensureConfig() (*Config, error) {
 	} else if err != nil {
 		return nil, fmt.Errorf("config file check: %w", err)
 	}
-	return loadConfig()
+	return LoadConfig()
 }
 
 func interactiveConfigFill() (Config, error) {

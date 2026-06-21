@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ func TestConfigSave(t *testing.T) {
 	port := 1234
 	dbpath := "./library.db"
 	test_conf := Config{Dir: dir, Port: port, DBPath: dbpath}
-	err := saveConfig(test_conf)
+	err := SaveConfig(test_conf)
 
 	require.Nil(t, err)
 
@@ -43,7 +43,7 @@ func TestConfigLoad(t *testing.T) {
 	err = os.WriteFile(path, data, 0777)
 	require.Nil(t, err)
 
-	conf, err := loadConfig()
+	conf, err := LoadConfig()
 	require.Nil(t, err)
 	require.Equal(t, test_conf, *conf)
 }

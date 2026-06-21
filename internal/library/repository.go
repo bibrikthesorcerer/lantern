@@ -290,7 +290,6 @@ func (r *LibraryRepository) ImportLibrary(rootPath string) error {
 		)
 		return err
 	})
-
 	if err != nil {
 		return err
 	}
@@ -342,7 +341,6 @@ func (r *LibraryRepository) RunAsTx(fn func(tx *sql.Tx) error) error {
 	defer tx.Rollback()
 
 	err = fn(tx)
-
 	if err != nil {
 		return err
 	}

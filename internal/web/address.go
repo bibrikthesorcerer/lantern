@@ -1,14 +1,16 @@
-package main
+package web
 
 import (
 	"fmt"
 	"net"
 
+	"github.com/bibrikthesorcerer/lantern/internal/config"
 	clog "github.com/charmbracelet/log"
 	qrcode "github.com/skip2/go-qrcode"
 )
 
-func printAddrQr(url string) {
+func PrintAddrQr(c config.Config) {
+	url := getURL(c)
 	qr, err := qrcode.New(url, qrcode.Medium)
 	if err != nil {
 		clog.Errorf("couldn't generate address QR: %s", err)
@@ -18,7 +20,7 @@ func printAddrQr(url string) {
 	fmt.Printf("\nOr type: %s\n\n", url)
 }
 
-func getURL(c Config) string {
+func getURL(c config.Config) string {
 	conn, err := net.Dial("udp", "8.8.8.8:80") // udp doesn't need handshake
 	if err != nil {
 		clog.Warnf("couldn't establish connection to resolve local ip: %s", err)
@@ -28,5 +30,5 @@ func getURL(c Config) string {
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr).IP.String()
 
-	return fmt.Sprintf("http://%s:%d", localAddr, c.Port) //TODO: use port from server config
+	return fmt.Sprintf("http://%s:%d", localAddr, c.Port)
 }

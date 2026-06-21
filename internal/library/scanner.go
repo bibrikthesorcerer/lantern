@@ -14,11 +14,11 @@ import (
 
 type metadata map[string][]string
 
-var audioTypes = []string{"mp3", "wav", "ogg", "flac"}
+var audioTypes = []string{".mp3", ".wav", ".ogg", ".flac"}
 
 func isSupportedAudio(name string) bool {
-	_, ext, found := strings.Cut(name, ".")
-	if !found {
+	ext := filepath.Ext(name)
+	if ext == "" {
 		return false
 	}
 
