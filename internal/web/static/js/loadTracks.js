@@ -21,7 +21,7 @@ function createTrack(track) {
     root.appendChild(title)
 
     const info = document.createElement("span")
-    info.textContent = `by ${track.artist}, from ${track.album}`
+    info.textContent = `${track.artist}`
     root.appendChild(info)
     return root
 }

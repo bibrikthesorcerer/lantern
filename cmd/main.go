@@ -1,11 +1,9 @@
 package main
 
 import (
-	"embed"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/fs"
 	"mime"
 	"os"
 
@@ -13,9 +11,6 @@ import (
 	"github.com/bibrikthesorcerer/lantern/internal/web"
 	clog "github.com/charmbracelet/log"
 )
-
-//go:embed static
-var staticFiles embed.FS
 
 var musicDir string
 var port int
@@ -39,15 +34,6 @@ func flagsOverrideConfig(c *config.Config) {
 		c.Port = port
 	}
 }
-func getFS() fs.FS {
-	if os.Getenv("DEV") == "1" {
-		clog.Info("DEV==1, using disk FS")
-		return os.DirFS("./static")
-	}
-
-	staticFS, _ := fs.Sub(staticFiles, "static")
-	return staticFS
-}
 
 func main() {
 	initParseCLIFlags()
@@ -67,7 +53,7 @@ func main() {
 	flagsOverrideConfig(conf)
 
 	// http setup
-	s, err := web.NewServer(conf, getFS())
+	s, err := web.NewServer(conf, web.GetFS())
 	if err != nil {
 		clog.Fatalf("NewServer setup fail: %s", err)
 	}

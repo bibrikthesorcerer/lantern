@@ -37,10 +37,10 @@ func SetUpRouting(s *MusicServer) *http.ServeMux {
 
 func (s *MusicServer) handleHome(w http.ResponseWriter, r *http.Request) {
 	files := []string{
-		"static/base.html",
-		"static/nav.html",
-		"static/player.html",
-		"static/home.html",
+		"base.html",
+		"nav.html",
+		"player.html",
+		"home.html",
 	}
 	tmpl, err := template.ParseFS(s.StaticFiles, files...)
 	if err != nil {
@@ -99,10 +99,10 @@ func (s *MusicServer) handleTracks(w http.ResponseWriter, r *http.Request) {
 
 func (s *MusicServer) handleTrackList(w http.ResponseWriter, r *http.Request) {
 	files := []string{
-		"static/base.html",
-		"static/nav.html",
-		"static/player.html",
-		"static/tracks_page.html",
+		"base.html",
+		"nav.html",
+		"player.html",
+		"tracks_page.html",
 	}
 	tmpl, err := template.ParseFS(s.StaticFiles, files...)
 	if err != nil {
@@ -133,7 +133,7 @@ func (s *MusicServer) handleCover(w http.ResponseWriter, r *http.Request) {
 	}
 	if track.Metadata.Cover == nil {
 		// TODO: serve a default placeholder image
-		http.ServeFile(w, r, "static/placeholder.png")
+		http.ServeFile(w, r, "img/album_placeholder.png")
 		return
 	}
 	w.Header().Set("Content-Type", track.Metadata.Cover.MIMEType)
@@ -185,10 +185,10 @@ func (s *MusicServer) handleAlbumByID(w http.ResponseWriter, r *http.Request) {
 
 func (s *MusicServer) handleAlbumList(w http.ResponseWriter, r *http.Request) {
 	files := []string{
-		"static/base.html",
-		"static/nav.html",
-		"static/player.html",
-		"static/albums_page.html",
+		"base.html",
+		"nav.html",
+		"player.html",
+		"albums_page.html",
 	}
 	tmpl, err := template.ParseFS(s.StaticFiles, files...)
 	if err != nil {

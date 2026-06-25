@@ -51,7 +51,7 @@ function createAlbum(album) {
     root.appendChild(albumHeader)
 
     const img = document.createElement("img")
-    img.setAttribute("src", `/api/cover/${album.tracks[0].id}`)
+    // img.setAttribute("src", `/api/cover/${album.tracks[0].id}`)
     img.style.width = "10vw"
     img.setAttribute("loading", "lazy")
     albumHeader.appendChild(img)
@@ -76,14 +76,22 @@ function createAlbum(album) {
     const tracksContainer = document.createElement("div")
     tracksContainer.classList.add("tracksContainer")
     root.appendChild(tracksContainer)
-
-    for (const track of album.tracks) {
-        const elem = createTrack(track)
-        elem.addEventListener("click", function(e) {updatePlayer(e.currentTarget)})
-        tracksContainer.appendChild(elem)
-    }
+    
+    getAlbumTracks(album.id).then(trackList => {
+        for (const track of trackList) {
+            const elem = createTrack(track)
+            elem.addEventListener("click", e => updatePlayer(e.currentTarget))
+            tracksContainer.appendChild(elem)
+        }
+    })
     
     return root
+}
+
+async function getAlbumTracks(id) {
+    const res = await fetch(`/api/albums/${id}`)
+    const albumDetails = await res.json()
+    return albumDetails.tracks
 }
 
 async function loadAlbums() {

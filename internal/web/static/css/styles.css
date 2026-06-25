@@ -11,12 +11,10 @@ body {
 }
 
 .trackCard {
-    margin-bottom: 5%;
-    padding: 2%;
+    padding: 2rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 20px;
-    width: fit-content;
     cursor: pointer;
 }
 

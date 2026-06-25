@@ -176,10 +176,15 @@ func (r *LibraryRepository) GetAlbumByID(id uint16) (AlbumDetails, error) {
 
 	album := AlbumDetails{}
 	err = tx.QueryRow(`
-		SELECT id, title, album_artist
-		FROM albums
-		WHERE id = ?
-	`, id).Scan(&album.ID, &album.Title, &album.AlbumArtist)
+		SELECT
+			a.id, a.title,
+			a.album_artist,
+			MIN(year) AS year,
+			COUNT(*) AS total_tracks
+		FROM albums a
+		LEFT JOIN tracks t ON a.id = t.album_id 
+		WHERE a.id = ?
+	`, id).Scan(&album.ID, &album.Title, &album.AlbumArtist, &album.Year, &album.TotalTracks)
 	if errors.Is(err, sql.ErrNoRows) {
 		return AlbumDetails{}, ErrAlbumNotFound
 	}
