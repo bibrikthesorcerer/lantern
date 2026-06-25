@@ -336,7 +336,7 @@ func (r *LibraryRepository) Sync(rootPath string) error {
 func (r *LibraryRepository) RunAsTx(fn func(tx *sql.Tx) error) error {
 	tx, err := r.db.Begin()
 	if err != nil {
-		return fmt.Errorf("trasaction start: %w", err)
+		return fmt.Errorf("transaction start: %w", err)
 	}
 	defer tx.Rollback()
 
