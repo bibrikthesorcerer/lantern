@@ -8,90 +8,19 @@
 Stream your personal music library from one machine to any device on your network — phone, laptop, TV, or a friend’s browser — instantly, with zero setup headaches.
 </p>
 
----
+## Problem
 
-## ✨ Why Lantern?
+Lantern comes from personal ick. Modern music streaming services are often inconvenient - subscriptions, licensing, region locks, internet connection dependency, etc.
 
-Modern music streaming services are convenient until they aren’t.
+So for some people it is more appealing to collect and store their favorite albums locally as files.
 
-Your music disappears behind subscriptions, licensing, region locks, or simply lives on one device that never quite follows you around.
+**Here comes the problem - your library lives only on one device.**
 
-Lantern was built out of a simple idea:
+If you want to browse your lib on any other device you simply have to sync them - that means double or triple the storage.
 
-> **Your music library should live with you — not in someone else’s cloud.**
+What Lantern does is it turns your collection into a personal streaming server accessible anywhere on LAN.
 
-If you already have a local collection (like a 9.5k+ track library), Lantern turns it into a personal streaming server accessible anywhere on your LAN.
-
-No accounts. No cloud. No sync. Just your music.
-
----
-
-## ⚡ Features
-
-- 🎵 Stream local music over HTTP (LAN)
-- 🌐 Minimal server-rendered web UI
-- 📁 Recursive folder scanning (configurable music directory)
-- 📷 QR code sharing for instant access on mobile devices
-- 🔓 LAN-open access (no authentication by design)
-- 🎧 Supports common audio formats:
-  - MP3
-  - FLAC
-  - WAV
-  - OGG
-- ⚙️ Simple JSON configuration
-- 🚀 Written in Go using `net/http`
-
----
-
-## 🛠 Tech Stack
-
-- Go (`net/http`)
-- go-taglib (metadata extraction)
-- Tailwind CSS (UI styling)
-- Vanilla server-rendered HTML
-
----
-
-## 🧠 Architecture
-
-Lantern is intentionally simple:
-
-```
-
-+----------------------+
-| Music Directory      |
-| (filesystem)         |
-+----------+-----------+
-|
-v
-+----------------------+
-| Scanner (runtime)    |
-| recursive scan       |
-+----------+-----------+
-|
-v
-+----------------------+
-| In-memory Library    |
-| (current version)    |
-+----------+-----------+
-|
-v
-+----------------------+
-| HTTP Server          |
-| net/http (Go)        |
-+----------+-----------+
-|
-v
-+----------------------+
-| Web UI (SSR HTML)    |
-| + QR sharing         |
-+----------------------+
-
-````
-
----
-
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Clone the repository
 
@@ -102,11 +31,11 @@ cd lantern
 
 ### 2. Build
 
-You can name the binary whatever you want:
-
 ```bash
 go build -o lantern
 ```
+
+*You can specify GOOS and GOARCH to build it for different devices.*
 
 ### 3. Run
 
@@ -114,11 +43,9 @@ go build -o lantern
 ./lantern
 ```
 
----
+## Configuration
 
-## ⚙️ Configuration
-
-Lantern uses a simple config file:
+Lantern uses a simple config file. You will be prompted to specify some values on first launch. After that it will be accessible in:
 
 ```
 ~/.config/lantern/config.json
@@ -133,20 +60,10 @@ Example:
 }
 ```
 
-You can also use relative paths:
+## Usage
 
-```json
-{
-  "music_dir": "./music",
-  "port": 8080
-}
-```
-
----
-
-## 🌍 Accessing Lantern
-
-Once running, Lantern will generate a connection QR-code as well as URL:
+Once running, Lantern will generate a connection QR-code as well as URL.  
+You can access it on host device via:
 
 ```
 http://localhost:8080
@@ -160,75 +77,48 @@ http://<your-local-ip>:8080
 
 Use the built-in QR code to open it instantly on mobile.
 
----
-
-## 🧭 Roadmap
-
-Lantern is still early-stage and evolving.
+## Roadmap
 
 ### Storage & Performance
 
-- [ ] SQLite-based persistent library index
+- [x] SQLite-based persistent library index
 - [ ] File system watcher (fsnotify) for live updates
-- [ ] Faster incremental rescans
 
 ### Features
 
 - [ ] Playlists
 - [ ] Playback caching
 - [ ] Better search & filtering
-- [ ] Album/artist metadata improvements (lazy loads mostly)
+
+### Misc
+
+- [ ] Vanilla CSS only
 
 ### Platform
 
-- [ ] PWA mobile experience
-- [ ] Optional internet access via reverse proxy
+- [ ] Responsive UI for comfortable mobile experience
 
----
+## Features
 
-## 📦 Supported Audio Formats
+  - Local music streaming over HTTP (LAN)
+  - Minimal server-rendered web UI
+  - Recursive folder scanning
+  - QR code sharing for instant access on mobile devices
+  - LAN-open access (no authentication by design)
+  - Supports common audio formats:
+      - MP3
+      - FLAC
+      - WAV
+      - OGG
+  - Simple JSON configuration
+  
+## Tech stack
+- Go
+- go-taglib (metadata extraction)
+- modernc/sqlite (SQLite driver for local persistence)
+- Tailwind CSS *(will be replaced with vanilla css in future)*
+- Vanilla server-rendered HTML
 
-| Format | Status |
-| ------ | ------ |
-| MP3    | ✅      |
-| FLAC   | ✅      |
-| WAV    | ✅      |
-| OGG    | ✅      |
-
----
-
-## 🧪 Future Ideas
-
-- Lightweight authentication (optional toggle)
-- Multi-user support
-- Music rooms (stream music for everyone connected)
-
----
-
-## ❓ FAQ
-
-### Can I expose Lantern to the internet?
-
-Yes, but it's designed for LAN use. Internet exposure is possible via port forwarding or reverse proxy, but authentication is not built-in yet.
-
-### Does Lantern modify my music files?
-
-No. Everything is read-only at the moment.
-
-### Does it support streaming large libraries?
-
-Yes — current version uses runtime scanning and in-memory indexing.
-
----
-
-## 💭 Final Note
-
->Lantern is a personal project — built for the joy of turning a private music collection into something that feels alive across devices.
->
->It’s minimal by design, but intentionally leaves room to grow.
-
----
-
-## 📜 License
+## License
 
 Project is MIT licensed.
