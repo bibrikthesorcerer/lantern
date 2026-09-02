@@ -52,11 +52,11 @@ func FullScan(dir string, repoInsertFn func(Track) error) error {
 	return err
 }
 
-func SyncScan(dir string, tracks []TrackFSInfo, upsertFn func(Track) error, deleteFn func(path string) error) error {
-	cached := make(map[string]TrackFSInfo, len(tracks))
+func SyncScan(dir string, cachedTracks []TrackFSInfo, upsertFn func(Track) error, deleteFn func(path string) error) error {
+	cachedTracksMap := make(map[string]TrackFSInfo, len(cachedTracks))
 
-	for _, t := range tracks {
-		cached[t.Path] = t
+	for _, t := range cachedTracks {
+		cachedTracksMap[t.Path] = t
 	}
 
 	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
@@ -68,7 +68,7 @@ func SyncScan(dir string, tracks []TrackFSInfo, upsertFn func(Track) error, dele
 			return nil
 		}
 
-		cachedTrack, exists := cached[path]
+		cachedTrack, exists := cachedTracksMap[path]
 
 		info, err := d.Info()
 		// dont care about err - file renamed or moved
@@ -81,6 +81,7 @@ func SyncScan(dir string, tracks []TrackFSInfo, upsertFn func(Track) error, dele
 		if !exists ||
 			cachedTrack.ModTime != info.ModTime() ||
 			cachedTrack.Size != info.Size() {
+
 			parsedTrack, err := parseTrack(path, d)
 			if err != nil {
 				log.Printf("skipping %s: %v", path, err)
@@ -92,16 +93,15 @@ func SyncScan(dir string, tracks []TrackFSInfo, upsertFn func(Track) error, dele
 			}
 		}
 
-		delete(cached, path)
+		delete(cachedTracksMap, path)
 
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
 
-	for _, t := range cached {
+	for _, t := range cachedTracksMap {
 		if err = deleteFn(t.Path); err != nil {
 			break
 		}
@@ -159,18 +159,6 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 		return Track{}, fmt.Errorf("get file info: %w", err)
 	}
 
-	image, err := taglib.ReadImage(path)
-	if err != nil {
-		return Track{}, fmt.Errorf("image read: %w", err)
-	}
-
-	props, err := taglib.ReadProperties(path)
-	if err != nil {
-		return Track{}, fmt.Errorf("props read: %w", err)
-	}
-	cover := AlbumCover{Data: image}
-	cover.ImageDesc = props.Images[0]
-
 	m, err := taglib.ReadTags(path)
 	if err != nil {
 		return Track{}, fmt.Errorf("tag reading: %w", err)
@@ -184,7 +172,6 @@ func parseTrack(path string, entry os.DirEntry) (Track, error) {
 			AlbumArtist: extractAlbumArtist(m),
 			TrackNum:    extractTrackNum(m),
 			Year:        extractYear(m),
-			Cover:       &cover,
 		},
 		FSInfo: TrackFSInfo{
 			Path:     path,

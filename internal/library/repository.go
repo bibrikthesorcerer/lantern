@@ -16,7 +16,7 @@ const (
 	title, artist, album, album_artist, track_num, year, album_id, mtime, size, path
 	)
 	VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	ON CONFLICT (path)	
+	ON CONFLICT (path)
 	DO UPDATE SET
 		title = excluded.title,
 		artist = excluded.artist,
@@ -102,7 +102,7 @@ func (r *LibraryRepository) GetTrackByID(id uint16) (Track, error) {
 	res := Track{}
 	var mtime int64
 	err := r.db.QueryRow(`
-		SELECT 
+		SELECT
 			id, title,
 			artist, album,
 			mtime, size, path
@@ -139,7 +139,7 @@ func (r *LibraryRepository) GetAlbums() ([]Album, error) {
 		MIN(year) AS year,
 		COUNT(*) AS total_tracks
 	FROM albums a
-	LEFT JOIN tracks t ON a.id = t.album_id 
+	LEFT JOIN tracks t ON a.id = t.album_id
 	GROUP BY a.title, a.album_artist
 	ORDER BY a.id
 	`)
@@ -182,7 +182,7 @@ func (r *LibraryRepository) GetAlbumByID(id uint16) (AlbumDetails, error) {
 			MIN(year) AS year,
 			COUNT(*) AS total_tracks
 		FROM albums a
-		LEFT JOIN tracks t ON a.id = t.album_id 
+		LEFT JOIN tracks t ON a.id = t.album_id
 		WHERE a.id = ?
 	`, id).Scan(&album.ID, &album.Title, &album.AlbumArtist, &album.Year, &album.TotalTracks)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -304,7 +304,7 @@ func (r *LibraryRepository) ImportLibrary(rootPath string) error {
 
 func (r *LibraryRepository) Sync(rootPath string) error {
 	return r.RunAsTx(func(tx *sql.Tx) error {
-		tracks, err := getTracksFSInfo(tx)
+		cachedTracks, err := getTracksFSInfo(tx)
 		if err != nil {
 			return err
 		}
@@ -326,7 +326,7 @@ func (r *LibraryRepository) Sync(rootPath string) error {
 
 		return SyncScan(
 			rootPath,
-			tracks,
+			cachedTracks,
 			func(t Track) error {
 				return execUpsertTrack(upsertStmt, t)
 			},
