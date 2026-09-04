@@ -22,19 +22,18 @@ type Config struct {
 }
 
 func configPath() (string, error) {
-	dir, err := os.UserConfigDir()
+	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return "", err
 	}
 
-	dir = filepath.Join(dir, "lantern")
+	configDir = filepath.Join(configDir, "lantern")
 
-	err = os.Mkdir(dir, 0750) // rwx rw- ---
-	if err != nil && !os.IsExist(err) {
+	if err = os.MkdirAll(configDir, 0750); err != nil && !os.IsExist(err) {
 		return "", err
 	}
 
-	return filepath.Join(dir, "config.json"), nil
+	return filepath.Join(configDir, "config.json"), nil
 }
 
 func LoadConfig() (*Config, error) {
