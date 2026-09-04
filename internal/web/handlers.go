@@ -16,7 +16,7 @@ import (
 func SetUpRouting(s *MusicServer) *http.ServeMux {
 	router := http.NewServeMux()
 
-	fs := http.FileServer(http.FS(s.StaticFiles))
+	fs := http.FileServer(http.FS(s.staticFiles))
 	router.Handle(
 		"GET /static/",
 		http.StripPrefix("/static/", fs),
@@ -42,7 +42,7 @@ func (s *MusicServer) handleHome(w http.ResponseWriter, r *http.Request) {
 		"player.html",
 		"home.html",
 	}
-	tmpl, err := template.ParseFS(s.StaticFiles, files...)
+	tmpl, err := template.ParseFS(s.staticFiles, files...)
 	if err != nil {
 		clog.Errorf("couldn't parse templates: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -64,7 +64,7 @@ func (s *MusicServer) handleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	track, err := s.Repo.GetTrackByID(uint16(id))
+	track, err := s.repo.GetTrackByID(uint16(id))
 	if err != nil {
 		log.Infof("404 Response for track #%d. %s", id, err)
 		http.NotFound(w, r)
@@ -84,7 +84,7 @@ func (s *MusicServer) handleStream(w http.ResponseWriter, r *http.Request) {
 func (s *MusicServer) handleTracks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	tracks, err := s.Repo.GetAllTracks()
+	tracks, err := s.repo.GetAllTracks()
 	if err != nil {
 		clog.Errorf("get album list json: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -104,7 +104,7 @@ func (s *MusicServer) handleTrackList(w http.ResponseWriter, r *http.Request) {
 		"player.html",
 		"tracks_page.html",
 	}
-	tmpl, err := template.ParseFS(s.StaticFiles, files...)
+	tmpl, err := template.ParseFS(s.staticFiles, files...)
 	if err != nil {
 		clog.Errorf("couldn't parse templates: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -126,24 +126,19 @@ func (s *MusicServer) handleCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	track, err := s.Repo.GetTrackByID(uint16(id))
+	cover, err := s.coverCache.GetAlbumCover(uint16(id))
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
-	if track.Metadata.Cover == nil {
-		// TODO: serve a default placeholder image
-		http.ServeFile(w, r, "img/album_placeholder.png")
-		return
-	}
-	w.Header().Set("Content-Type", track.Metadata.Cover.MIMEType)
-	w.Write(track.Metadata.Cover.Data)
+	w.Header().Set("Content-Type", cover.MIMEType)
+	w.Write(cover.Data)
 }
 
 func (s *MusicServer) handleAlbums(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	albums, err := s.Repo.GetAlbums()
+	albums, err := s.repo.GetAlbums()
 	if err != nil {
 		clog.Errorf("get album list json: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -164,7 +159,7 @@ func (s *MusicServer) handleAlbumByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	albums, err := s.Repo.GetAlbumByID(uint16(id))
+	albums, err := s.repo.GetAlbumByID(uint16(id))
 	if errors.Is(err, library.ErrAlbumNotFound) {
 		http.NotFound(w, r)
 		return
@@ -190,7 +185,7 @@ func (s *MusicServer) handleAlbumList(w http.ResponseWriter, r *http.Request) {
 		"player.html",
 		"albums_page.html",
 	}
-	tmpl, err := template.ParseFS(s.StaticFiles, files...)
+	tmpl, err := template.ParseFS(s.staticFiles, files...)
 	if err != nil {
 		clog.Errorf("couldn't parse templates: %s", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -212,7 +207,7 @@ func (s *MusicServer) handleTrackDownload(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	track, err := s.Repo.GetTrackByID(uint16(id))
+	track, err := s.repo.GetTrackByID(uint16(id))
 	if err != nil {
 		log.Errorf("get track: %s", err)
 		http.NotFound(w, r)

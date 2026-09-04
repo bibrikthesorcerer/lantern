@@ -41,5 +41,6 @@ type TrackSummary struct {
 	Title    string `json:"title"`
 	Artist   string `json:"artist"`
 	Album    string `json:"album"`
+	AlbumID  uint16 `json:"album_id,omitempty"`
 	TrackNum uint16 `json:"track"`
 }
