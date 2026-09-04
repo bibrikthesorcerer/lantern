@@ -13,17 +13,19 @@ import (
 )
 
 type MusicServer struct {
-	Repo        *library.LibraryRepository
+	repo        *library.LibraryRepository
+	coverCache  *library.CoverCache
 	Conf        *config.Config
-	StaticFiles fs.FS
+	staticFiles fs.FS
 }
 
-func NewServer(c *config.Config, staticFiles fs.FS) (*MusicServer, error) {
-	repo, err := library.NewTrackRepository(c.DBPath)
-	if err != nil {
-		return nil, fmt.Errorf("library setup: %w", err)
-	}
-	return &MusicServer{Repo: repo, Conf: c, StaticFiles: staticFiles}, nil
+func NewServer(repo *library.LibraryRepository, coverCache *library.CoverCache, c *config.Config, staticFiles fs.FS) (*MusicServer, error) {
+	return &MusicServer{
+		repo:        repo,
+		coverCache:  coverCache,
+		Conf:        c,
+		staticFiles: staticFiles,
+	}, nil
 }
 
 func (s *MusicServer) RunServer() error {
