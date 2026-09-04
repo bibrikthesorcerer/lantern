@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	clog "github.com/charmbracelet/log"
 	_ "modernc.org/sqlite"
 )
 
@@ -31,13 +32,14 @@ const (
 )
 
 type LibraryRepository struct {
-	db     *sql.DB
-	dbPath string
+	db         *sql.DB
+	dbPath     string
+	coverCache *CoverCache
 }
 
-func NewTrackRepository(path string) (*LibraryRepository, error) {
+func NewLibraryRepository(dbPath string, coverCache *CoverCache) (*LibraryRepository, error) {
 	var err error
-	r := LibraryRepository{dbPath: path}
+	r := LibraryRepository{dbPath: dbPath, coverCache: coverCache}
 	r.db, err = sql.Open("sqlite", r.dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("open db connection: %w", err)
@@ -88,7 +90,6 @@ func createSchema(tx *sql.Tx) error {
 		size INTEGER,
 		path TEXT UNIQUE NOT NULL,
 		FOREIGN KEY (album_id) REFERENCES albums(id)
-		CONSTRAINT uc_title_artist_album UNIQUE (title, artist, album)
 	)
 	`)
 	if err != nil {
@@ -192,7 +193,7 @@ func (r *LibraryRepository) GetAlbumByID(id uint16) (AlbumDetails, error) {
 		return AlbumDetails{}, fmt.Errorf("album query: %w", err)
 	}
 
-	fields := "id, title, artist, album, track_num"
+	fields := "id, title, artist, album, album_id, track_num"
 	q := fmt.Sprintf("SELECT %s FROM tracks WHERE album_id = ? ORDER BY track_num", fields)
 	rows, err := tx.Query(q, id)
 	if err != nil {
@@ -205,7 +206,7 @@ func (r *LibraryRepository) GetAlbumByID(id uint16) (AlbumDetails, error) {
 		err = rows.Scan(
 			&tr.ID, &tr.Title,
 			&tr.Artist, &tr.Album,
-			&tr.TrackNum,
+			&tr.AlbumID, &tr.TrackNum,
 		)
 		if err != nil {
 			return AlbumDetails{}, fmt.Errorf("row scan err: %w", err)
@@ -229,7 +230,7 @@ func (r *LibraryRepository) GetAllTracks() ([]TrackSummary, error) {
 	defer tx.Rollback()
 
 	rows, err := tx.Query(`
-		SELECT id, title, artist, album, track_num
+		SELECT id, title, artist, album, album_id, track_num
 		FROM tracks
 	`)
 	if err != nil {
@@ -242,7 +243,7 @@ func (r *LibraryRepository) GetAllTracks() ([]TrackSummary, error) {
 		err = rows.Scan(
 			&tr.ID, &tr.Title,
 			&tr.Artist, &tr.Album,
-			&tr.TrackNum,
+			&tr.AlbumID, &tr.TrackNum,
 		)
 		if err != nil {
 			return []TrackSummary{}, fmt.Errorf("row scan err: %w", err)
@@ -278,9 +279,15 @@ func (r *LibraryRepository) ImportLibrary(rootPath string) error {
 	}
 
 	err = FullScan(rootPath, func(track Track) error {
-		albumID, err := getOrCreateAlbum(tx, track)
+		albumID, created, err := getOrCreateAlbum(tx, track)
 		if err != nil {
 			return err
+		}
+
+		if created {
+			if err := r.coverCache.CacheAlbumCover(track.FSInfo.Path, albumID); err != nil {
+				clog.Warnf("cache album cover %s: %v", track.Metadata.Album, err)
+			}
 		}
 
 		track.Metadata.AlbumID = albumID
@@ -354,6 +361,7 @@ func (r *LibraryRepository) RunAsTx(fn func(tx *sql.Tx) error) error {
 }
 
 func getTracksFSInfo(tx *sql.Tx) ([]TrackFSInfo, error) {
+	// Select a len of tracks and allocate slice cap
 	tracks := []TrackFSInfo{}
 	rows, err := tx.Query(`
 		SELECT path, mtime, size
@@ -401,15 +409,24 @@ func execUpsertTrack(stmt *sql.Stmt, track Track) error {
 	return err
 }
 
-func getOrCreateAlbum(tx *sql.Tx, track Track) (uint16, error) {
+func getOrCreateAlbum(tx *sql.Tx, track Track) (uint16, bool, error) {
 	var id uint16
-
 	err := tx.QueryRow(`
-		INSERT INTO albums (title, album_artist)
+		SELECT id
+		FROM albums
+		WHERE title = ?
+		AND album_artist = ?
+	`, track.Metadata.Album, track.Metadata.AlbumArtist).Scan(&id)
+
+	// nil or something other than "Not Found"
+	if !errors.Is(err, sql.ErrNoRows) {
+		return id, false, err
+	}
+
+	err = tx.QueryRow(`
+		INSERT INTO albums(title, album_artist)
 		VALUES (?, ?)
-		ON CONFLICT (title, album_artist)
-		DO UPDATE SET album_artist = excluded.album_artist
 		RETURNING id
 	`, track.Metadata.Album, track.Metadata.AlbumArtist).Scan(&id)
-	return id, err
+	return id, true, err
 }
